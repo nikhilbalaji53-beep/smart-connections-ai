@@ -13,7 +13,9 @@ import {
   Bot,
   Wrench,
   Split,
-  Globe
+  Globe,
+  Menu,
+  X
 } from 'lucide-react';
 
 export type UserRole = 'customer' | 'agent' | 'technician' | 'dual';
@@ -33,6 +35,8 @@ interface TopNavProps {
   onOpenKnowledgeTrainer?: () => void;
   currentRole?: UserRole;
   onSelectRole?: (role: UserRole) => void;
+  onToggleMobileMenu?: () => void;
+  isMobileMenuOpen?: boolean;
 }
 
 export const TopNav: React.FC<TopNavProps> = ({
@@ -50,29 +54,43 @@ export const TopNav: React.FC<TopNavProps> = ({
   onOpenKnowledgeTrainer,
   currentRole = 'agent',
   onSelectRole,
+  onToggleMobileMenu,
+  isMobileMenuOpen = false,
 }) => {
   return (
-    <header className="sticky top-0 z-50 bg-white border-b border-slate-200 shadow-xs">
-      <div className="px-4 lg:px-6">
-        <div className="flex items-center justify-between h-16">
-          {/* Logo & Taglines */}
-          <div className="flex items-center space-x-3 shrink-0">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-700 via-blue-600 to-indigo-600 flex items-center justify-center text-white shadow-sm ring-2 ring-blue-100">
-              <Brain className="w-6 h-6 animate-pulse-subtle" />
+    <header className="sticky top-0 z-40 bg-white border-b border-slate-200 shadow-xs">
+      <div className="px-3 sm:px-4 lg:px-6">
+        <div className="flex items-center justify-between h-14 sm:h-16 gap-2">
+          {/* Left: Mobile Menu Toggle + Logo & Taglines */}
+          <div className="flex items-center space-x-2 sm:space-x-3 shrink-0">
+            {onToggleMobileMenu && (
+              <button
+                type="button"
+                onClick={onToggleMobileMenu}
+                className="p-1.5 -ml-1 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg md:hidden transition-colors"
+                aria-label="Toggle Navigation Menu"
+              >
+                {isMobileMenuOpen ? <X className="w-5 h-5 text-slate-800" /> : <Menu className="w-5 h-5 text-slate-800" />}
+              </button>
+            )}
+
+            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-tr from-blue-700 via-blue-600 to-indigo-600 flex items-center justify-center text-white shadow-sm ring-2 ring-blue-100 shrink-0">
+              <Brain className="w-5 h-5 sm:w-6 sm:h-6 animate-pulse-subtle" />
             </div>
             <div>
-              <div className="flex items-center space-x-2">
-                <span className="font-extrabold text-xl tracking-tight text-slate-900">
+              <div className="flex items-center space-x-1.5 sm:space-x-2">
+                <span className="font-extrabold text-lg sm:text-xl tracking-tight text-slate-900">
                   Recall<span className="text-blue-600">AI</span>
                 </span>
-                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200">
+                <span className="hidden sm:inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200">
                   <ShieldCheck className="w-3 h-3 mr-1 text-blue-600" />
                   Memory Active
                 </span>
               </div>
-              <p className="text-[11px] text-slate-500 font-medium">Bought it once. We'll remember it.</p>
+              <p className="text-[10px] sm:text-[11px] text-slate-500 font-medium hidden sm:block">Bought it once. We'll remember it.</p>
             </div>
           </div>
+
 
           {/* Central Search Bar */}
           <div className="hidden md:flex items-center flex-1 max-w-md mx-6">
@@ -143,46 +161,52 @@ export const TopNav: React.FC<TopNavProps> = ({
           </div>
 
           {/* Right Controls: Customer Selector, Scenarios, Notifications, Profile */}
-          <div className="flex items-center space-x-2.5">
+          <div className="flex items-center space-x-1.5 sm:space-x-2 shrink-0">
             {/* Welcome Hub Button */}
             {onOpenWelcomeHub && (
               <button
+                type="button"
                 onClick={onOpenWelcomeHub}
                 title="Return to Welcome Hub"
-                className="flex items-center space-x-1.5 px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition-colors"
+                className="flex items-center space-x-1 px-2 sm:px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition-colors"
               >
                 <Home className="w-3.5 h-3.5 text-slate-600" />
                 <span className="hidden sm:inline">Hub</span>
               </button>
             )}
 
-            {/* Knowledge Trainer Button */}
+            {/* Prominent Demo Center Button (Section 3 & 25) */}
+            {onOpenJudgeDemo && (
+              <button
+                type="button"
+                onClick={onOpenJudgeDemo}
+                title="Experience Customer Support That Remembers"
+                className="flex items-center space-x-1 px-2.5 sm:px-3 py-1.5 rounded-lg bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 text-[11px] sm:text-xs font-black shadow-xs transition-all transform hover:scale-[1.02] cursor-pointer"
+              >
+                <Sparkles className="w-3.5 h-3.5 text-slate-950" />
+                <span>DEMO</span>
+              </button>
+            )}
+
+            {/* Knowledge Trainer Button (Visible on md and above) */}
             {onOpenKnowledgeTrainer && (
               <button
+                type="button"
                 onClick={onOpenKnowledgeTrainer}
                 title="Crawl web docs & train universal problem solver"
-                className="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-900 border border-blue-200 text-xs font-bold transition-all shadow-xs"
+                className="hidden md:flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-900 border border-blue-200 text-xs font-bold transition-all shadow-xs"
               >
                 <Globe className="w-3.5 h-3.5 text-blue-600" />
                 <span>🌐 Web Trainer</span>
               </button>
             )}
 
-            {/* Prominent Demo Center Button (Section 3 & 25) */}
-            {onOpenJudgeDemo && (
+            {/* 1-Click Demo Scenarios Dropdown (Visible on lg and above) */}
+            <div className="relative group hidden lg:block">
               <button
-                onClick={onOpenJudgeDemo}
-                title="Experience Customer Support That Remembers"
-                className="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 text-xs font-black shadow-xs transition-all transform hover:scale-[1.02] cursor-pointer"
+                type="button"
+                className="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200 text-xs font-semibold transition-all"
               >
-                <Sparkles className="w-3.5 h-3.5 text-slate-950" />
-                <span>✨ DEMO</span>
-              </button>
-            )}
-
-            {/* 1-Click Demo Scenarios Dropdown */}
-            <div className="relative group">
-              <button className="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200 text-xs font-semibold transition-all">
                 <Sparkles className="w-3.5 h-3.5 text-amber-600" />
                 <span>Demo Stories</span>
                 <ChevronDown className="w-3.5 h-3.5 text-amber-600 ml-0.5" />
@@ -194,6 +218,7 @@ export const TopNav: React.FC<TopNavProps> = ({
                 {scenarios.map((sc) => (
                   <button
                     key={sc.id}
+                    type="button"
                     onClick={() => onSelectScenario(sc)}
                     className="w-full text-left p-2.5 rounded-lg hover:bg-blue-50 transition-colors text-xs group/item"
                   >
@@ -206,25 +231,26 @@ export const TopNav: React.FC<TopNavProps> = ({
 
             {/* Reset Demo State Button */}
             <button
+              type="button"
               onClick={onResetDemo}
               disabled={isResetting}
               title="Reset sample customer memories and tickets"
-              className="p-2 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-lg border border-slate-200 transition-colors disabled:opacity-50"
+              className="p-1.5 sm:p-2 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-lg border border-slate-200 transition-colors disabled:opacity-50"
             >
               <RotateCcw className={`w-3.5 h-3.5 ${isResetting ? 'animate-spin text-blue-600' : ''}`} />
             </button>
 
-            {/* Active Customer Selector */}
-            <div className="flex items-center bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1">
+            {/* Active Customer Selector (Visible on sm and above) */}
+            <div className="hidden sm:flex items-center bg-slate-50 border border-slate-200 rounded-lg px-2 sm:px-2.5 py-1">
               <div className="text-xs">
-                <span className="text-slate-400 block text-[9px] uppercase font-bold tracking-wider leading-none">Active Customer</span>
+                <span className="text-slate-400 block text-[9px] uppercase font-bold tracking-wider leading-none">Customer</span>
                 <select
                   value={activeCustomer.id}
                   onChange={(e) => {
                     const found = customers.find(c => c.id === e.target.value);
                     if (found) onSelectCustomer(found);
                   }}
-                  className="bg-transparent font-bold text-slate-900 text-xs focus:outline-none cursor-pointer py-0.5"
+                  className="bg-transparent font-bold text-slate-900 text-xs focus:outline-none cursor-pointer py-0.5 max-w-[120px] truncate"
                 >
                   {customers.map((c) => (
                     <option key={c.id} value={c.id}>
@@ -236,13 +262,16 @@ export const TopNav: React.FC<TopNavProps> = ({
             </div>
 
             {/* Notifications */}
-            <button className="relative p-2 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-lg border border-slate-200 transition-colors">
+            <button
+              type="button"
+              className="hidden sm:block relative p-2 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-lg border border-slate-200 transition-colors"
+            >
               <Bell className="w-4 h-4" />
               <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-blue-600"></span>
             </button>
 
             {/* Support Agent Profile Badge */}
-            <div className="hidden sm:flex items-center space-x-2 pl-2 border-l border-slate-200">
+            <div className="hidden xl:flex items-center space-x-2 pl-2 border-l border-slate-200">
               <div className="w-8 h-8 rounded-lg bg-blue-600 text-white flex items-center justify-center font-bold text-xs shadow-xs">
                 <User className="w-4 h-4" />
               </div>

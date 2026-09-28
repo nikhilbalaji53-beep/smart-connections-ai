@@ -15,7 +15,8 @@ import {
   Settings,
   Wrench,
   Headphones,
-  Split
+  Split,
+  X
 } from 'lucide-react';
 
 export type NavView =
@@ -41,12 +42,16 @@ interface SidebarProps {
   currentView: NavView;
   onNavigate: (view: NavView) => void;
   openTicketsCount: number;
+  isMobileOpen?: boolean;
+  onCloseMobile?: () => void;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
   currentView,
   onNavigate,
   openTicketsCount,
+  isMobileOpen = false,
+  onCloseMobile,
 }) => {
   const navItems = [
     { id: 'customer_chat', label: 'Customer Chat', icon: MessageSquare, badge: 'Route 1' },
@@ -67,10 +72,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
     { id: 'settings', label: 'Settings', icon: Settings },
   ];
 
-  return (
-    <aside className="w-64 bg-slate-950 text-slate-300 flex flex-col shrink-0 border-r border-slate-900 select-none">
+  const handleNavClick = (viewId: NavView) => {
+    onNavigate(viewId);
+    if (onCloseMobile) {
+      onCloseMobile();
+    }
+  };
+
+  const navContent = (
+    <>
       {/* Brand Subtitle Header */}
-      <div className="p-4 border-b border-slate-900">
+      <div className="p-4 border-b border-slate-900 flex items-center justify-between">
         <div className="flex items-center space-x-2.5">
           <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center text-white font-bold text-sm shadow-xs">
             <Brain className="w-4 h-4" />
@@ -80,6 +92,16 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <span className="block text-[10px] text-slate-400 font-medium">Enterprise Memory Platform</span>
           </div>
         </div>
+        {onCloseMobile && (
+          <button
+            type="button"
+            onClick={onCloseMobile}
+            className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-900 md:hidden"
+            aria-label="Close Sidebar"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        )}
       </div>
 
       {/* Navigation List */}
@@ -90,7 +112,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           return (
             <button
               key={item.id}
-              onClick={() => onNavigate(item.id as NavView)}
+              onClick={() => handleNavClick(item.id as NavView)}
               className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg font-medium transition-all ${
                 isActive
                   ? item.id === 'judge'
@@ -138,6 +160,33 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </div>
         </div>
       </div>
-    </aside>
+    </>
+  );
+
+  return (
+    <>
+      {/* Desktop Persistent Sidebar (Only visible on md screens and larger) */}
+      <aside className="hidden md:flex w-64 bg-slate-950 text-slate-300 flex-col shrink-0 border-r border-slate-900 select-none">
+        {navContent}
+      </aside>
+
+      {/* Mobile Backdrop Overlay */}
+      {isMobileOpen && (
+        <div
+          className="fixed inset-0 bg-slate-950/80 backdrop-blur-xs z-50 md:hidden transition-opacity"
+          onClick={onCloseMobile}
+        />
+      )}
+
+      {/* Mobile Slide-Out Drawer */}
+      <aside
+        className={`fixed top-0 bottom-0 left-0 z-50 w-72 max-w-[85vw] bg-slate-950 text-slate-300 flex flex-col border-r border-slate-900 select-none shadow-2xl transition-transform duration-300 ease-in-out md:hidden ${
+          isMobileOpen ? 'translate-x-0' : '-translate-x-full'
+        }`}
+      >
+        {navContent}
+      </aside>
+    </>
   );
 };
+

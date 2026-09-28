@@ -76,7 +76,7 @@ export const UniversalKnowledgeModal: React.FC<UniversalKnowledgeModalProps> = (
   const loadArticles = async () => {
     setLoading(true);
     try {
-      const res = await fetch('http://127.0.0.1:8000/api/crawler/articles');
+      const res = await fetch('/api/crawler/articles');
       if (res.ok) {
         const data = await res.json();
         setArticles(data.articles || []);
@@ -92,7 +92,7 @@ export const UniversalKnowledgeModal: React.FC<UniversalKnowledgeModalProps> = (
     setLoading(true);
     setStatusMessage(null);
     try {
-      const res = await fetch('http://127.0.0.1:8000/api/crawler/seed-universal-knowledge', {
+      const res = await fetch('/api/crawler/seed-universal-knowledge', {
         method: 'POST',
       });
       const data = await res.json();
@@ -117,7 +117,7 @@ export const UniversalKnowledgeModal: React.FC<UniversalKnowledgeModalProps> = (
     setCrawlResult(null);
 
     try {
-      const res = await fetch('http://127.0.0.1:8000/api/crawler/ingest-url', {
+      const res = await fetch('/api/crawler/ingest-url', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -160,7 +160,7 @@ export const UniversalKnowledgeModal: React.FC<UniversalKnowledgeModalProps> = (
       .filter(Boolean);
 
     try {
-      const res = await fetch('http://127.0.0.1:8000/api/crawler/ingest-text', {
+      const res = await fetch('/api/crawler/ingest-text', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -198,7 +198,7 @@ export const UniversalKnowledgeModal: React.FC<UniversalKnowledgeModalProps> = (
   const handleExportDataset = async () => {
     setLoading(true);
     try {
-      const res = await fetch('http://127.0.0.1:8000/api/crawler/export-dataset');
+      const res = await fetch('/api/crawler/export-dataset');
       if (res.ok) {
         const data = await res.json();
         setExportedDataset(data);
@@ -218,7 +218,7 @@ export const UniversalKnowledgeModal: React.FC<UniversalKnowledgeModalProps> = (
     setTestResponse(null);
 
     try {
-      const res = await fetch('http://127.0.0.1:8000/api/chat', {
+      const res = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

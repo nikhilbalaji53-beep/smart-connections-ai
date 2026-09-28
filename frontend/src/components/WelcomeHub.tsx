@@ -15,33 +15,33 @@ interface WelcomeHubProps {
 
 export const WelcomeHub: React.FC<WelcomeHubProps> = ({ onSelectOption }) => {
   return (
-    <div className="flex-1 p-6 lg:p-10 overflow-y-auto space-y-10 max-w-6xl mx-auto">
+    <div className="flex-1 p-4 sm:p-6 lg:p-10 overflow-y-auto space-y-6 sm:space-y-10 max-w-6xl w-full mx-auto min-w-0">
       {/* 1. WELCOME HERO SECTION */}
-      <div className="text-center space-y-3 pt-4">
-        <div className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full bg-blue-50 text-blue-700 border border-blue-200 text-xs font-bold tracking-wide">
+      <div className="text-center space-y-2.5 sm:space-y-3 pt-2 sm:pt-4">
+        <div className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full bg-blue-50 text-blue-700 border border-blue-200 text-[11px] sm:text-xs font-bold tracking-wide">
           <Brain className="w-3.5 h-3.5 text-blue-600" />
           <span>Microsoft AI Hackathon Project</span>
         </div>
-        <h1 className="text-3xl sm:text-4xl font-black text-slate-900 tracking-tight">
+        <h1 className="text-2xl sm:text-4xl font-black text-slate-900 tracking-tight">
           WELCOME TO <span className="text-blue-600">RECALLAI</span>
         </h1>
-        <p className="text-base text-slate-600 font-medium max-w-2xl mx-auto leading-relaxed">
+        <p className="text-xs sm:text-base text-slate-600 font-medium max-w-2xl mx-auto leading-relaxed px-2">
           "Your AI support agent remembers the story, so your customers don't have to repeat it."
         </p>
       </div>
 
       {/* 2. THREE PROMINENT OPTIONS */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
         {/* Option 1: Customer Support */}
         <button
           onClick={() => onSelectOption('support')}
-          className="group text-left p-6 rounded-3xl bg-white border-2 border-slate-200 hover:border-blue-600 shadow-sm hover:shadow-xl transition-all flex flex-col justify-between space-y-4"
+          className="group text-left p-5 sm:p-6 rounded-2xl sm:rounded-3xl bg-white border-2 border-slate-200 hover:border-blue-600 shadow-sm hover:shadow-xl transition-all flex flex-col justify-between space-y-4"
         >
           <div className="space-y-3">
-            <div className="w-12 h-12 rounded-2xl bg-blue-50 group-hover:bg-blue-600 text-blue-600 group-hover:text-white flex items-center justify-center transition-colors shadow-xs">
-              <MessageSquare className="w-6 h-6" />
+            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-blue-50 group-hover:bg-blue-600 text-blue-600 group-hover:text-white flex items-center justify-center transition-colors shadow-xs">
+              <MessageSquare className="w-5 h-5 sm:w-6 sm:h-6" />
             </div>
-            <h3 className="text-lg font-black text-slate-900 group-hover:text-blue-600 transition-colors">
+            <h3 className="text-base sm:text-lg font-black text-slate-900 group-hover:text-blue-600 transition-colors">
               Customer Support
             </h3>
             <p className="text-xs text-slate-500 leading-relaxed">
@@ -57,13 +57,13 @@ export const WelcomeHub: React.FC<WelcomeHubProps> = ({ onSelectOption }) => {
         {/* Option 2: Agent Dashboard */}
         <button
           onClick={() => onSelectOption('dashboard')}
-          className="group text-left p-6 rounded-3xl bg-white border-2 border-slate-200 hover:border-indigo-600 shadow-sm hover:shadow-xl transition-all flex flex-col justify-between space-y-4"
+          className="group text-left p-5 sm:p-6 rounded-2xl sm:rounded-3xl bg-white border-2 border-slate-200 hover:border-indigo-600 shadow-sm hover:shadow-xl transition-all flex flex-col justify-between space-y-4"
         >
           <div className="space-y-3">
-            <div className="w-12 h-12 rounded-2xl bg-indigo-50 group-hover:bg-indigo-600 text-indigo-600 group-hover:text-white flex items-center justify-center transition-colors shadow-xs">
-              <LayoutDashboard className="w-6 h-6" />
+            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-indigo-50 group-hover:bg-indigo-600 text-indigo-600 group-hover:text-white flex items-center justify-center transition-colors shadow-xs">
+              <LayoutDashboard className="w-5 h-5 sm:w-6 sm:h-6" />
             </div>
-            <h3 className="text-lg font-black text-slate-900 group-hover:text-indigo-600 transition-colors">
+            <h3 className="text-base sm:text-lg font-black text-slate-900 group-hover:text-indigo-600 transition-colors">
               Agent Dashboard
             </h3>
             <p className="text-xs text-slate-500 leading-relaxed">
@@ -79,14 +79,14 @@ export const WelcomeHub: React.FC<WelcomeHubProps> = ({ onSelectOption }) => {
         {/* Option 3: Judge Demo (Special Highlight) */}
         <button
           onClick={() => onSelectOption('judge')}
-          className="group text-left p-6 rounded-3xl bg-gradient-to-br from-amber-500 to-orange-500 text-slate-950 border-2 border-amber-400 shadow-lg hover:shadow-2xl transition-all flex flex-col justify-between space-y-4 transform hover:scale-[1.02]"
+          className="group text-left p-5 sm:p-6 rounded-2xl sm:rounded-3xl bg-gradient-to-br from-amber-500 to-orange-500 text-slate-950 border-2 border-amber-400 shadow-lg hover:shadow-2xl transition-all flex flex-col justify-between space-y-4 transform hover:scale-[1.02]"
         >
           <div className="space-y-3">
-            <div className="w-12 h-12 rounded-2xl bg-slate-950 text-amber-400 flex items-center justify-center shadow-md">
-              <Sparkles className="w-6 h-6" />
+            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-slate-950 text-amber-400 flex items-center justify-center shadow-md">
+              <Sparkles className="w-5 h-5 sm:w-6 sm:h-6" />
             </div>
             <div className="flex items-center justify-between">
-              <h3 className="text-lg font-black text-slate-950">
+              <h3 className="text-base sm:text-lg font-black text-slate-950">
                 Judge Demo
               </h3>
               <span className="text-[10px] font-black uppercase tracking-wider bg-slate-950 text-amber-300 px-2 py-0.5 rounded-full">
@@ -105,10 +105,10 @@ export const WelcomeHub: React.FC<WelcomeHubProps> = ({ onSelectOption }) => {
       </div>
 
       {/* 3. THE REAL-LIFE PROBLEM & SOLUTION SHOWCASE */}
-      <div className="bg-white rounded-3xl border border-slate-200 p-6 sm:p-8 shadow-xs space-y-6">
+      <div className="bg-white rounded-2xl sm:rounded-3xl border border-slate-200 p-4 sm:p-8 shadow-xs space-y-4 sm:space-y-6">
         <div className="text-center space-y-1">
           <span className="text-[10px] font-black uppercase tracking-widest text-rose-600">The Problem</span>
-          <h2 className="text-2xl font-black text-slate-900 tracking-tight">Why Normal AI Fails</h2>
+          <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">Why Normal AI Fails</h2>
           <p className="text-xs text-slate-500 max-w-xl mx-auto font-medium">
             Customers shouldn't have to repeat their story every time they contact support.
           </p>

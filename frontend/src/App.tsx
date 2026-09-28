@@ -43,6 +43,7 @@ export const App: React.FC = () => {
   const [escalationTicketId, setEscalationTicketId] = useState<number | undefined>(undefined);
   const [searchQuery, setSearchQuery] = useState('');
   const [isLoading, setIsLoading] = useState(true);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     initApp();
@@ -261,14 +262,27 @@ export const App: React.FC = () => {
           }}
           currentRole={currentRole}
           onSelectRole={handleRoleSelect}
+          onToggleMobileMenu={() => setMobileMenuOpen(prev => !prev)}
+          isMobileMenuOpen={mobileMenuOpen}
         />
-        <div className="flex-1 flex overflow-hidden">
+        <div className="flex-1 flex overflow-hidden min-w-0 w-full">
           <CustomerChatView
             customer={activeCustomer}
             activeTicket={activeTicket}
             onOpenSupportAgent={() => handleRoleSelect('agent')}
           />
         </div>
+        <Sidebar
+          currentView={currentView}
+          onNavigate={(view) => {
+            setShowWelcomeHub(false);
+            setCurrentView(view);
+            setMobileMenuOpen(false);
+          }}
+          openTicketsCount={tickets.filter(t => t.status !== 'Resolved').length}
+          isMobileOpen={mobileMenuOpen}
+          onCloseMobile={() => setMobileMenuOpen(false)}
+        />
         <UniversalKnowledgeModal
           isOpen={knowledgeModalOpen}
           onClose={() => setKnowledgeModalOpen(false)}
@@ -299,8 +313,10 @@ export const App: React.FC = () => {
           }}
           currentRole={currentRole}
           onSelectRole={handleRoleSelect}
+          onToggleMobileMenu={() => setMobileMenuOpen(prev => !prev)}
+          isMobileMenuOpen={mobileMenuOpen}
         />
-        <div className="flex-1 flex overflow-hidden">
+        <div className="flex-1 flex overflow-hidden min-w-0 w-full">
           <DualSplitView
             customer={activeCustomer}
             tickets={tickets}
@@ -309,6 +325,17 @@ export const App: React.FC = () => {
             onOpenTechnicianConsole={() => handleRoleSelect('technician')}
           />
         </div>
+        <Sidebar
+          currentView={currentView}
+          onNavigate={(view) => {
+            setShowWelcomeHub(false);
+            setCurrentView(view);
+            setMobileMenuOpen(false);
+          }}
+          openTicketsCount={tickets.filter(t => t.status !== 'Resolved').length}
+          isMobileOpen={mobileMenuOpen}
+          onCloseMobile={() => setMobileMenuOpen(false)}
+        />
         <UniversalKnowledgeModal
           isOpen={knowledgeModalOpen}
           onClose={() => setKnowledgeModalOpen(false)}
@@ -338,6 +365,8 @@ export const App: React.FC = () => {
         }}
         currentRole={currentRole}
         onSelectRole={handleRoleSelect}
+        onToggleMobileMenu={() => setMobileMenuOpen(prev => !prev)}
+        isMobileMenuOpen={mobileMenuOpen}
       />
 
       {/* 2. CUSTOMER PROFILE BANNER & CURRENT PROBLEM CONTEXT */}
@@ -349,19 +378,22 @@ export const App: React.FC = () => {
       )}
 
       {/* 3. MAIN WORKSPACE WITH SIDEBAR */}
-      <div className="flex-1 flex overflow-hidden">
-        {/* Left Professional Sidebar */}
+      <div className="flex-1 flex overflow-hidden min-w-0 w-full">
+        {/* Left Professional Sidebar (Responsive: drawer on mobile, docked on desktop) */}
         <Sidebar
           currentView={currentView}
           onNavigate={(view) => {
             setShowWelcomeHub(false);
             setCurrentView(view);
+            setMobileMenuOpen(false);
           }}
           openTicketsCount={tickets.filter(t => t.status !== 'Resolved').length}
+          isMobileOpen={mobileMenuOpen}
+          onCloseMobile={() => setMobileMenuOpen(false)}
         />
 
         {/* Dynamic Main Workspace */}
-        <main className="flex-1 flex flex-col overflow-hidden bg-slate-100">
+        <main className="flex-1 flex flex-col overflow-hidden bg-slate-100 min-w-0 w-full">
           {showWelcomeHub ? (
             <WelcomeHub onSelectOption={handleWelcomeOption} />
           ) : (

@@ -14,8 +14,6 @@ env/
 # Node & Frontend
 node_modules/
 frontend/node_modules/
-dist/
-frontend/dist/
 
 # Scratch & Logs
 scratch/
