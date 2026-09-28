@@ -83,16 +83,76 @@ class HardwareDiagnosticsAgent:
             return text, "Offer authorized hardware repair & technician booking", "Book Technician", suggested_actions, memory_used_badges
 
         # 4. Diagnostic Step Responses (Progression from Step 1)
-        if any(w in msg_l for w in ["amber", "flashing", "blinking", "white light", "flashing light", "blinking light"]):
+        # 4A. Specific LED behavior: Flashing Continuously (Amber)
+        if any(w in msg_l for w in ["flashing continuously", "continuous amber", "continuously flashing", "constant flashing", "blinking continuously"]):
             text = (
-                f"An amber-and-white blinking light pattern on your **{product_name}** indicates a specific Dell POST hardware diagnostic code:\n\n"
-                f"• **2 Amber, 3 White:** System memory (RAM) failure or unseated memory module\n"
-                f"• **3 Amber, 1 White:** CMOS battery or RTC power loss\n"
-                f"• **2 Amber, 4 White:** Mainboard power management controller (PMIC) fault\n\n"
-                f"Does the LED blink in a specific repeating pattern, or does it stay solid amber?"
+                f"On your **{product_name}**, an LED continuously flashing amber indicates a power supply negotiation failure (unrecognized or unauthenticated AC adapter), inadequate voltage, or an unrecoverable battery cell fault preventing charging.\n\n"
+                f"### 🛠️ Immediate Action Steps:\n"
+                f"1. **Flea Power Drain & Hard Reset:** Disconnect the AC power adapter. Press and hold down the laptop's **Power button for 20–30 seconds** with the charger unplugged to completely discharge residual flea power from the motherboard capacitors.\n"
+                f"2. **Direct Wall Outlet Test:** Inspect the charger tip and barrel pin for bends. Plug the adapter directly into an independent wall outlet (bypass surge protectors and multi-strips), then reconnect firmly to the laptop.\n\n"
+                f"Since your purchase carries **Active Warranty Protection** (Order {order_number} on {platform}), if the continuous amber flashing persists after this reset, we can immediately arrange an authorized technician visit or file an expedited replacement."
             )
-            suggested_actions = ["2 Amber, 3 White", "Solid Amber Light", "Flashing Continuously", "Book Technician"]
-            return text, "Diagnose Dell LED blink code sequence", "Identify Blink Code", suggested_actions, memory_used_badges
+            suggested_actions = ["Reset Completed - Still Blinking Amber", "Reset Succeeded - Light Steady White", "Book Technician", "Claim Warranty"]
+            return text, "Execute Dell flea power reset protocol", "Flea Power Reset", suggested_actions, memory_used_badges
+
+        # 4B. Follow-up after flea power reset
+        if any(w in msg_l for w in ["still blinking", "still amber", "reset failed", "still flashing", "did not work"]):
+            text = (
+                f"Thank you for completing the flea power drain. Because the amber light continues to flash after discharging residual current, this confirms internal battery cell degradation or a failure on the motherboard charging circuit (PMIC).\n\n"
+                f"Under your **Active Warranty** (Order {order_number} via {platform}), you are eligible for zero-cost authorized component replacement.\n\n"
+                f"Would you like to book an authorized technician visit for your {product_name}, or would you like to file a direct warranty replacement claim?"
+            )
+            suggested_actions = ["Book Technician", "Claim Warranty", "Speak with Specialist"]
+            return text, "Hardware failure confirmed after reset - Escalate to technician", "Book Technician", suggested_actions, memory_used_badges
+
+        if any(w in msg_l for w in ["steady white", "white light now", "reset succeeded", "working now", "light is white"]):
+            text = (
+                f"Great progress! The steady white light indicates that the power management IC has successfully negotiated charge delivery with your AC adapter.\n\n"
+                f"Allow the laptop to charge for at least 30 minutes before powering it on to ensure the cells reach safe operating voltage.\n\n"
+                f"Would you like instructions on generating a battery health report once booted?"
+            )
+            suggested_actions = ["Run Battery Health Report", "Save Troubleshooting Record", "All Set"]
+            return text, "Power negotiation restored - Charge device", "Charge Device", suggested_actions, memory_used_badges
+
+        # 4C. Specific Numbered Blink Codes (2 Amber, 3 White; etc.)
+        if any(w in msg_l for w in ["2 amber", "3 amber", "amber, 3 white", "amber, 1 white"]):
+            if "2 amber" in msg_l or "3 white" in msg_l:
+                text = (
+                    f"The **2 Amber, 3 White** blink code on your **{product_name}** indicates a system memory (RAM) failure or an unseated memory module.\n\n"
+                    f"Because your laptop has **Active Warranty Protection**, an authorized technician can reseat or replace the memory module without voiding your warranty.\n\n"
+                    f"Would you like to schedule a technician visit or initiate a warranty replacement claim?"
+                )
+                suggested_actions = ["Book Technician", "Claim Warranty", "Speak with Specialist"]
+                return text, "Diagnose Dell RAM fault (2 Amber, 3 White)", "Book Technician", suggested_actions, memory_used_badges
+            elif "3 amber" in msg_l or "1 white" in msg_l:
+                text = (
+                    f"The **3 Amber, 1 White** blink code on your **{product_name}** indicates a CMOS / RTC coin cell battery failure.\n\n"
+                    f"Since your purchase carries **Active Warranty Protection**, we can dispatch an authorized technician or replace the module under warranty.\n\n"
+                    f"Would you like to book a technician or file a claim?"
+                )
+                suggested_actions = ["Book Technician", "Claim Warranty", "Speak with Specialist"]
+                return text, "Diagnose Dell CMOS battery fault (3 Amber, 1 White)", "Book Technician", suggested_actions, memory_used_badges
+
+        # 4D. Solid Amber Light
+        if any(w in msg_l for w in ["solid amber", "solid amber light"]):
+            text = (
+                f"A **Solid Amber** light on your **{product_name}** indicates that the battery charge has fallen below the critical operating threshold or that the internal cells have reached end-of-life.\n\n"
+                f"Disconnect all external accessories, plug the charger into a direct wall outlet, and let it charge for 20 minutes without turning the laptop on. If the light remains solid amber, the battery pack requires replacement.\n\n"
+                f"Would you like to schedule an authorized technician visit or claim your warranty replacement?"
+            )
+            suggested_actions = ["Book Technician", "Claim Warranty", "Speak with Specialist"]
+            return text, "Diagnose Dell critical battery condition (Solid Amber)", "Book Technician", suggested_actions, memory_used_badges
+
+        # 4E. General Amber / White Light Question (only if specific rhythm not yet identified)
+        if any(w in msg_l for w in ["flashing amber / white light", "amber / white", "pattern"]):
+            text = (
+                f"To diagnose the exact Dell POST code on your **{product_name}**, we need to identify the blinking rhythm:\n\n"
+                f"• Is the amber light **Flashing Continuously** without pausing?\n"
+                f"• Or does it flash a counted sequence (such as **2 Amber, 3 White**)?\n\n"
+                f"Please select what you observe on your battery status LED:"
+            )
+            suggested_actions = ["Flashing Continuously", "2 Amber, 3 White", "Solid Amber Light", "Book Technician"]
+            return text, "Identify Dell POST blink code sequence", "Select Blink Pattern", suggested_actions, memory_used_badges
 
         if any(w in msg_l for w in ["beep", "beeps", "beeping"]):
             text = (

@@ -191,10 +191,18 @@ def derive_suggested_actions(reply: str, user_msg: str, prod: Dict[str, str]) ->
             return ["Issue persists in Safe Mode", "Phone worked smoothly in Safe Mode", "Book Technician"]
         return ["Isolate Single App", "Entire Phone Locks Up", "Book Technician"]
     elif "laptop" in pname or "dell" in pname:
-        if any(w in msg for w in ["hardware", "suite", "diagnostic", "epsa", "hardware test"]):
+        if any(phrase in msg for phrase in ["flashing continuously", "continuous amber", "continuously flashing", "constant flashing"]):
+            return ["Reset Completed - Still Blinking Amber", "Reset Succeeded - Light Steady White", "Book Technician", "Claim Warranty"]
+        elif any(w in msg for w in ["still blinking", "still amber", "reset failed"]):
+            return ["Book Technician", "Claim Warranty", "Speak with Specialist"]
+        elif any(w in msg for w in ["steady white", "white light now", "reset succeeded"]):
+            return ["Run Battery Health Report", "Save Troubleshooting Record", "All Set"]
+        elif any(phrase in msg for phrase in ["2 amber", "3 amber", "amber, 3 white", "solid amber"]):
+            return ["Book Technician", "Claim Warranty", "Speak with Specialist"]
+        elif any(w in msg for w in ["hardware", "suite", "diagnostic", "epsa", "hardware test"]):
             return ["Flashing Amber / White Light", "Diagnostic Beeps Heard", "No Lights or Beeps", "ePSA Test Passed"]
         elif any(w in msg for w in ["amber", "blinking", "white light", "light"]):
-            return ["2 Amber, 3 White", "Solid Amber Light", "Flashing Continuously", "Book Technician"]
+            return ["Flashing Continuously", "2 Amber, 3 White", "Solid Amber Light", "Book Technician"]
         elif "beep" in msg:
             return ["Continuous Beeps", "3 Short Beeps", "4 Beeps", "Book Technician"]
         elif "battery" in msg or "drain" in msg or "hour" in msg:
@@ -251,16 +259,68 @@ def generate_dynamic_contextual_reply(
             )
             return reply, ["Hardware Sensors Passed", "Screen Freezes During Test", "Touch Quadrant Failed", "Book Technician"]
 
-    # 2. Answering Step 1 Hardware Diagnostic (Dell ePSA & Beeps & Amber lights)
-    if any(w in msg for w in ["amber", "flashing", "blinking", "white light", "flashing light", "blinking light"]):
+    # 2. Specific LED pattern: Flashing Continuously (Amber)
+    if any(phrase in msg for phrase in ["flashing continuously", "continuous amber", "continuously flashing", "constant flashing", "blinking continuously"]):
         reply = (
-            f"An amber-and-white blinking light pattern on your **{pname}** indicates a specific Dell POST hardware diagnostic code:\n\n"
-            f"• **2 Amber, 3 White:** System memory (RAM) failure or unseated memory module\n"
-            f"• **3 Amber, 1 White:** CMOS battery or RTC power loss\n"
-            f"• **2 Amber, 4 White:** Mainboard power management controller (PMIC) fault\n\n"
-            f"Does the LED blink in a specific repeating pattern, or does it stay solid amber?"
+            f"On your **{pname}**, an LED continuously flashing amber indicates a power supply negotiation failure (unrecognized or unauthenticated AC adapter), inadequate voltage, or an unrecoverable battery cell fault preventing charging.\n\n"
+            f"### 🛠️ Immediate Action Steps:\n"
+            f"1. **Flea Power Drain & Hard Reset:** Disconnect the AC power adapter. Press and hold down the laptop's **Power button for 20–30 seconds** with the charger unplugged to completely discharge residual flea power from the motherboard capacitors.\n"
+            f"2. **Direct Wall Outlet Test:** Inspect the charger tip and barrel pin for bends. Plug the adapter directly into an independent wall outlet (bypass surge protectors and multi-strips), then reconnect firmly to the laptop.\n\n"
+            f"Since your purchase carries **Active Warranty Protection** (Order {order_id} on {platform}), if the continuous amber flashing persists after this reset, we can immediately arrange an authorized technician visit or file an expedited replacement."
         )
-        return reply, ["2 Amber, 3 White", "Solid Amber Light", "Flashing Continuously", "Book Technician"]
+        return reply, ["Reset Completed - Still Blinking Amber", "Reset Succeeded - Light Steady White", "Book Technician", "Claim Warranty"]
+
+    # 3. Follow-up after flea power reset
+    if any(w in msg for w in ["still blinking", "still amber", "reset failed", "still flashing", "did not work"]):
+        reply = (
+            f"Thank you for completing the flea power drain. Because the amber light continues to flash after discharging residual current, this confirms internal battery cell degradation or a failure on the motherboard charging circuit (PMIC).\n\n"
+            f"Under your **Active Warranty** (Order {order_id} via {platform}), you are eligible for zero-cost authorized component replacement.\n\n"
+            f"Would you like to book an authorized technician visit for your {pname}, or would you like to file a direct warranty replacement claim?"
+        )
+        return reply, ["Book Technician", "Claim Warranty", "Speak with Specialist"]
+
+    if any(w in msg for w in ["steady white", "white light now", "reset succeeded", "working now", "light is white"]):
+        reply = (
+            f"Great progress! The steady white light indicates that the power management IC has successfully negotiated charge delivery with your AC adapter.\n\n"
+            f"Allow the laptop to charge for at least 30 minutes before powering it on to ensure the cells reach safe operating voltage.\n\n"
+            f"Would you like instructions on generating a battery health report once booted?"
+        )
+        return reply, ["Run Battery Health Report", "Save Troubleshooting Record", "All Set"]
+
+    # 4. Numbered Blink Codes (2 Amber, 3 White; etc.)
+    if any(phrase in msg for phrase in ["2 amber", "3 amber", "amber, 3 white", "amber, 1 white"]):
+        if "2 amber" in msg or "3 white" in msg:
+            reply = (
+                f"The **2 Amber, 3 White** blink code on your **{pname}** indicates a system memory (RAM) failure or an unseated memory module.\n\n"
+                f"Because your laptop has **Active Warranty Protection**, an authorized technician can reseat or replace the memory module without voiding your warranty.\n\n"
+                f"Would you like to schedule a technician visit or initiate a warranty replacement claim?"
+            )
+            return reply, ["Book Technician", "Claim Warranty", "Speak with Specialist"]
+        elif "3 amber" in msg or "1 white" in msg:
+            reply = (
+                f"The **3 Amber, 1 White** blink code on your **{pname}** indicates a CMOS / RTC coin cell battery failure.\n\n"
+                f"Since your purchase carries **Active Warranty Protection**, we can dispatch an authorized technician or replace the module under warranty.\n\n"
+                f"Would you like to book a technician or file a claim?"
+            )
+            return reply, ["Book Technician", "Claim Warranty", "Speak with Specialist"]
+
+    if any(w in msg for w in ["solid amber", "solid amber light"]):
+        reply = (
+            f"A **Solid Amber** light on your **{pname}** indicates that the battery charge has fallen below the critical operating threshold or that the internal cells have reached end-of-life.\n\n"
+            f"Disconnect all external accessories, plug the charger into a direct wall outlet, and let it charge for 20 minutes without turning the laptop on. If the light remains solid amber, the battery pack requires replacement.\n\n"
+            f"Would you like to schedule an authorized technician visit or claim your warranty replacement?"
+        )
+        return reply, ["Book Technician", "Claim Warranty", "Speak with Specialist"]
+
+    # 5. General amber/white query ONLY if specific rhythm not yet identified
+    if any(w in msg for w in ["flashing amber / white light", "amber / white", "pattern"]):
+        reply = (
+            f"To diagnose the exact Dell POST code on your **{pname}**, we need to identify the blinking rhythm:\n\n"
+            f"• Is the amber light **Flashing Continuously** without pausing?\n"
+            f"• Or does it flash a counted sequence (such as **2 Amber, 3 White**)?\n\n"
+            f"Please select what you observe on your battery status LED:"
+        )
+        return reply, ["Flashing Continuously", "2 Amber, 3 White", "Solid Amber Light", "Book Technician"]
 
     if any(w in msg for w in ["beep", "beeps", "beeping"]):
         reply = (
@@ -424,14 +484,19 @@ ACTIVE PRODUCT & ORDER CONTEXT:
 
 CRITICAL RULES:
 1. NEVER output the greeting or "I have initialized the Hardware Diagnostic Agent..." if it has already been said in the chat history.
-2. If the user clicks or types "Hardware Diagnostic Suite", immediately provide Step 1 of the Dell Laptop diagnostic routine:
+2. NEVER re-send the LED pattern menu if the customer has already selected an option.
+3. If the user clicks or types "Hardware Diagnostic Suite", immediately provide Step 1 of the Dell Laptop diagnostic routine:
    - Instruct them to shut down the laptop, hold down the 'Fn' key, and press the Power button to trigger Dell ePSA Pre-boot diagnostics.
    - Ask them: "Do you hear any diagnostic beeps or see colored flashing lights on the battery indicator?"
-3. Never repeat prior messages or canned templates. Always progress the diagnosis forward based on the user's latest response.
-4. Keep the response concise, clear, and direct (2-4 sentences per turn unless deep technical detail is requested).
-5. If the user asks for an explanation (e.g., "i want perfect explanation"), explain the root causes of their specific hardware/software issue in simple, clear terms and guide them on what to check next.
-6. If safety concerns arise (smoke, burning smell, swollen battery), immediately instruct them to power off the device and stop using it.
-7. Offer escalation or technician booking only when troubleshooting fails or when explicitly requested."""
+4. If the customer specifies "Flashing Continuously" (Amber):
+   - Explain that a continuous flashing amber light typically indicates power supply negotiation failure (unrecognized or unauthenticated AC adapter), inadequate voltage, or an unrecoverable battery cell state.
+   - Give 2 actionable troubleshooting steps:
+     a) Disconnect AC adapter, hold the laptop power button down for 20-30 seconds (drain residual flea power), and plug directly into a wall outlet without surge protectors.
+     b) Inspect the power jack and adapter barrel pin for physical damage or bends.
+   - Since warranty is Active, provide options to [Book Technician] or [Claim Warranty] if amber blinking persists after the reset.
+5. If the customer reports "Reset Completed - Still Blinking Amber", confirm motherboard PMIC / battery failure and offer immediate technician booking or warranty claim.
+6. Never repeat prior messages or canned templates. Always progress the diagnosis forward based on the user's latest response.
+7. Keep the tone professional, direct, and concise."""
 
     # 4. Format history
     history_list = []
