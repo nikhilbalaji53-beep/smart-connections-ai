@@ -18,7 +18,9 @@ class HardwareDiagnosticsAgent:
             "microphone", "cannot hear", "charging port", "loose port", "wont charge", "not charging",
             "hardware", "swollen battery", "bulging", "physical damage", "dropped my phone", "dropped laptop",
             "speaker is crackling", "distorted", "crackling", "distorted sound", "speaker distorted",
-            "crackling and distorted", "audio crackling", "cracked", "broken", "glass", "shattered"
+            "crackling and distorted", "audio crackling", "cracked", "broken", "glass", "shattered",
+            "amber", "blinking", "flashing", "white light", "beep", "beeps", "epsa", "flea power",
+            "steady white", "still blinking", "power drain", "diagnostic suite", "hardware check", "diagnostic"
         ]
         return any(k in msg_l for k in keywords)
 

@@ -101,7 +101,7 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({
         ]
       };
 
-      setMessages([initialGreeting]);
+      setMessages((prev) => (prev.length > 0 ? prev : [initialGreeting]));
     } catch (err) {
       console.error('Failed to load customer portal context', err);
     } finally {

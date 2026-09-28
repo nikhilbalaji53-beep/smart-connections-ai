@@ -33,6 +33,8 @@ class ConnectionManager:
         self.technician_joined: Dict[str, bool] = {}
         # Track suggestion variation index for support console
         self.suggestion_variation_index: Dict[str, int] = {}
+        # Track persistent conversation_id per customer room for multi-turn history
+        self.active_conversation_id: Dict[str, str] = {}
 
     def get_time_str(self) -> str:
         return datetime.now().strftime("%I:%M:%S %p")
@@ -164,12 +166,14 @@ async def live_support_websocket(websocket: WebSocket, customer_id: str, role: s
                 orchestrator = AIOrchestrator(db)
                 try:
                     product_payload = payload.get("product_info")
+                    conv_id = payload.get("conversation_id") or manager.active_conversation_id.get(customer_id)
                     resp = await orchestrator.generate_response(
                         customer_id=customer_id,
                         user_message=user_msg,
-                        conversation_id=payload.get("conversation_id"),
+                        conversation_id=conv_id,
                         product_info=product_payload
                     )
+                    manager.active_conversation_id[customer_id] = resp.conversation_id
 
                     ai_reply_time = manager.get_time_str()
 

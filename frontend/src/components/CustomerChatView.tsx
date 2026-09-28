@@ -369,6 +369,11 @@ export const CustomerChatView: React.FC<CustomerChatViewProps> = ({
           if (msg.sender === 'customer') {
             const hasExact = prev.some((m) => m.content === msg.content && m.sender === 'customer');
             if (hasExact) return prev;
+          } else {
+            const last = prev[prev.length - 1];
+            if (last && last.content === msg.content && last.sender !== 'customer') {
+              return prev;
+            }
           }
 
           return [
@@ -425,19 +430,27 @@ export const CustomerChatView: React.FC<CustomerChatViewProps> = ({
   }, [customer.id, autoReadAloud]);
 
   const handleStartProductSupport = (product: PurchasedProduct) => {
+    const isDifferentProduct = selectedProduct.id !== product.id;
     setSelectedProduct(product);
     setCurrentView('support');
-    setMessages([
-      {
-        id: `init_${Date.now()}`,
-        sender: 'assistant',
-        senderName: 'RecallAI Support',
-        content: `I've opened the product record for your **${product.name}** (Order ${product.orderNumber} from ${product.platform}).\n\nWarranty: **${product.warrantyStatus}** | Delivery: **${product.deliveryStatus}**\n\nI already know your purchase history and previous support context. What problem are you experiencing?`,
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        deliveryStatus: 'Read',
-        options: product.commonProblems.slice(0, 3)
+
+    // Only re-initialize greeting if switching to a different product or no messages exist
+    setMessages((prev) => {
+      if (!isDifferentProduct && prev.length > 1) {
+        return prev; // Preserve full multi-turn diagnostic progress
       }
-    ]);
+      return [
+        {
+          id: `init_${Date.now()}`,
+          sender: 'assistant',
+          senderName: 'RecallAI Support',
+          content: `I've opened the product record for your **${product.name}** (Order ${product.orderNumber} from ${product.platform}).\n\nWarranty: **${product.warrantyStatus}** | Delivery: **${product.deliveryStatus}**\n\nI already know your purchase history and previous support context. What problem are you experiencing?`,
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          deliveryStatus: 'Read',
+          options: product.commonProblems.slice(0, 3)
+        }
+      ];
+    });
   };
 
   const handleSendMessage = (textToSend?: string) => {
@@ -456,6 +469,7 @@ export const CustomerChatView: React.FC<CustomerChatViewProps> = ({
       deliveryStatus: 'Sent'
     };
 
+    // ALWAYS append sequentially to conversation history - NEVER overwrite or reset
     setMessages((prev) => [...prev, userMsg]);
     setInputVal('');
     setIsTyping(true);

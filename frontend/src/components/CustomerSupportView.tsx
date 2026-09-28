@@ -122,42 +122,47 @@ export const CustomerSupportView: React.FC<CustomerSupportViewProps> = ({
   }, [messages, isLoading]);
 
   const initConversation = () => {
-    const convId = `conv_${customer.id}_${Date.now()}`;
-    setConversationId(convId);
+    // Safeguard: Never wipe out or reset messages if conversation has already progressed
+    setMessages((prev) => {
+      if (prev.length > 0) return prev;
 
-    // Initial conversation state exactly matching Section 3
-    if (customer.id === 'cust_marcus') {
-      const userMsg: ChatMessage = {
-        sender: 'user',
-        content: "My pipeline is timing out again.",
-        created_at: '10:41 AM'
-      };
+      const convId = `conv_${customer.id}_${Date.now()}`;
+      setConversationId(convId);
 
-      const aiMsg: ChatMessage = {
-        sender: 'assistant',
-        content: `Welcome back, Marcus.\n\nI remember your previous pipeline timeout issue.\n\nYou previously tried:\n• Cache clearing — unsuccessful\n• Agent restart — temporary improvement\n• Application reinstall — worked temporarily\n\nYour current environment is:\nUbuntu Linux 22.04\nJAMMY v3.16\n\nYou don't need to repeat those details.\n\nLet's continue from where we stopped.`,
-        created_at: '10:41 AM',
-        memory_used: [
-          { type: 'ticket', title: 'Previous Ticket', detail: 'Ticket #8841 (Pipeline timeout)' },
-          { type: 'failed_solution', title: 'Cache Clearing', detail: 'Failed on August 12' },
-          { type: 'temporary_solution', title: 'Application Reinstall', detail: 'Worked temporarily' },
-          { type: 'environment', title: 'Current Environment', detail: 'Ubuntu Linux 22.04 / JAMMY v3.16' }
-        ],
-        sentiment_tag: 'URGENT'
-      };
+      // Initial conversation state exactly matching Section 3
+      if (customer.id === 'cust_marcus') {
+        const userMsg: ChatMessage = {
+          sender: 'user',
+          content: "My pipeline is timing out again.",
+          created_at: '10:41 AM'
+        };
 
-      setMessages([userMsg, aiMsg]);
-    } else {
-      const defaultGreeting: ChatMessage = {
-        sender: 'assistant',
-        content: `Welcome back, ${customer.name}.\n\nRecallAI has retrieved your verified profile and environment specs for ${customer.organization}.\n\nHow can I help you with your environment today?`,
-        created_at: new Date().toLocaleTimeString(),
-        memory_used: [
-          { type: 'environment', title: 'Environment', detail: `${customer.environment?.operating_system}` }
-        ]
-      };
-      setMessages([defaultGreeting]);
-    }
+        const aiMsg: ChatMessage = {
+          sender: 'assistant',
+          content: `Welcome back, Marcus.\n\nI remember your previous pipeline timeout issue.\n\nYou previously tried:\n• Cache clearing — unsuccessful\n• Agent restart — temporary improvement\n• Application reinstall — worked temporarily\n\nYour current environment is:\nUbuntu Linux 22.04\nJAMMY v3.16\n\nYou don't need to repeat those details.\n\nLet's continue from where we stopped.`,
+          created_at: '10:41 AM',
+          memory_used: [
+            { type: 'ticket', title: 'Previous Ticket', detail: 'Ticket #8841 (Pipeline timeout)' },
+            { type: 'failed_solution', title: 'Cache Clearing', detail: 'Failed on August 12' },
+            { type: 'temporary_solution', title: 'Application Reinstall', detail: 'Worked temporarily' },
+            { type: 'environment', title: 'Current Environment', detail: 'Ubuntu Linux 22.04 / JAMMY v3.16' }
+          ],
+          sentiment_tag: 'URGENT'
+        };
+
+        return [userMsg, aiMsg];
+      } else {
+        const defaultGreeting: ChatMessage = {
+          sender: 'assistant',
+          content: `Welcome back, ${customer.name}.\n\nRecallAI has retrieved your verified profile and environment specs for ${customer.organization}.\n\nHow can I help you with your environment today?`,
+          created_at: new Date().toLocaleTimeString(),
+          memory_used: [
+            { type: 'environment', title: 'Environment', detail: `${customer.environment?.operating_system}` }
+          ]
+        };
+        return [defaultGreeting];
+      }
+    });
   };
 
   const handleSendMessage = async (textToSend?: string) => {
