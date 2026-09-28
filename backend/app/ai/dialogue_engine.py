@@ -739,13 +739,21 @@ class DialogueEngine:
                 actions = ["Freezing or Crashing", "Hardware Problem", "Book Technician"]
                 return text, "Isolate product symptoms", "Isolate Symptom", actions, memory_used_badges
 
-        text = (
-            f"I understand, {customer_name}.\n\n"
-            f"Regarding your query for **{product_name}** (Order {order_number} from {platform}):\n\n"
-            f"We have all previous diagnostics saved in memory. Please let me know how you'd like to proceed:\n"
-            f"• Continue step-by-step troubleshooting\n"
-            f"• Schedule an authorized technician visit\n"
-            f"• Speak directly with a support agent"
+        from ..api.support_chat import generate_dynamic_contextual_reply
+        prod_dict = {
+            "product_name": product_name,
+            "order_id": order_number,
+            "platform": platform,
+            "warranty_status": "Active"
+        }
+        hist = []
+        for m in conversation_history:
+            hist.append({"role": m.get("role", "user"), "content": m.get("content", m.get("message", ""))})
+
+        dyn_text, dyn_actions = generate_dynamic_contextual_reply(
+            user_message=latest_message,
+            history=hist,
+            product_info=prod_dict,
+            customer_name=customer_name
         )
-        actions = ["Continue Troubleshooting", "Book Technician", "Talk to Human Agent"]
-        return text, "Contextual support guidance", "Continue Troubleshooting", actions, memory_used_badges
+        return dyn_text, "Contextual dynamic explanation", "Continue Troubleshooting", dyn_actions, memory_used_badges

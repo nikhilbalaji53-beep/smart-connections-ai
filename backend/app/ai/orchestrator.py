@@ -435,8 +435,9 @@ class AIOrchestrator:
         last_assistant_msg = prev_assistant_texts[-1] if prev_assistant_texts else ""
         all_conv_text = " ".join(prev_user_texts + [msg_lower])
 
-        # Check external LLM if configured
-        if (self.azure_openai_key and self.azure_endpoint) or self.openai_key:
+        # Check external LLM if configured (OpenAI / Azure / Gemini)
+        gemini_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
+        if (self.azure_openai_key and self.azure_endpoint) or self.openai_key or gemini_key:
             try:
                 external_resp = await self._call_external_llm(
                     customer=customer,
@@ -449,7 +450,7 @@ class AIOrchestrator:
                     warranty=p_warranty
                 )
                 if external_resp:
-                    return external_resp[0], external_resp[1], external_resp[2], external_resp[3], external_resp[4], external_resp[5], ["Continue", "Book Technician"]
+                    return external_resp[0], external_resp[1], external_resp[2], external_resp[3], external_resp[4], external_resp[5], external_resp[6]
             except Exception as e:
                 print(f"[RecallAI] LLM error: {e}. Utilizing native cognitive engine.")
 
@@ -701,12 +702,14 @@ class AIOrchestrator:
         order_number: str,
         platform: str,
         warranty: str
-    ) -> Optional[Tuple[str, str, str, List[int], List[str], List[MemoryUsedItem]]]:
+    ) -> Optional[Tuple[str, str, str, List[int], List[str], List[MemoryUsedItem], List[str]]]:
         """
         External LLM integration (OpenAI / Azure / Gemini) formatted strictly with RecallAI system instructions.
         """
+        from ..api.support_chat import derive_suggested_actions
+
         system_prompt = (
-            "You are RecallAI, a contextual customer-support AI.\n"
+            "You are RecallAI, a contextual customer-support AI for Smart Connections AI.\n"
             "Your primary responsibility is to understand and answer the customer's latest message.\n"
             "You have access to customer history, product information, order information, previous support tickets, troubleshooting attempts, and hindsight.\n"
             "Use this information only when relevant.\n"
@@ -714,16 +717,21 @@ class AIOrchestrator:
             "Never provide a canned response.\n"
             "Never assume the customer's latest message is the same as their previous message.\n"
             "Interpret short messages using conversation context.\n"
-            "If the customer says 'please guide me', continue the current troubleshooting process rather than restarting it.\n"
+            "If the customer says 'please guide me' or 'continue', continue the current troubleshooting process rather than restarting it.\n"
+            "If the customer asks for an explanation (e.g. 'i want perfect explanation'), explain the root causes in clear, technical terms and guide what to check next.\n"
             "If the customer says they already tried a step, never ask them to repeat that step.\n"
             "If a troubleshooting attempt failed, move to the next appropriate diagnostic.\n"
             "If the customer changes topics, answer the new topic.\n"
             "If information is missing, ask a focused question.\n"
             "If the issue cannot reasonably be resolved remotely, offer technician escalation.\n"
-            "Respond naturally, clearly, and conversationally.\n"
-            "Do not expose internal reasoning. Do not repeat the entire customer profile in every response.\n"
+            "Respond naturally, clearly, and conversationally (2-4 concise sentences unless deep technical detail is asked).\n"
             "Your goal is to solve the customer's current problem while ensuring the customer never has to start from zero."
         )
+
+        messages_payload = [{"role": "system", "content": system_prompt}]
+        for m in conversation_history[-10:]:
+            role = "user" if m.get("role") in ["customer", "user"] else "assistant"
+            messages_payload.append({"role": role, "content": m.get("content", m.get("message", ""))})
 
         prompt_context = (
             f"CUSTOMER PROFILE: {customer.name} (ID: {customer.id})\n"
@@ -732,32 +740,48 @@ class AIOrchestrator:
             f"WARRANTY: {warranty}\n"
             f"LATEST CUSTOMER MESSAGE:\n{user_message}"
         )
-
-        messages_payload = [{"role": "system", "content": system_prompt}]
-        for m in conversation_history[-6:]:
-            role = "user" if m.get("role") in ["customer", "user"] else "assistant"
-            messages_payload.append({"role": role, "content": m.get("content", m.get("message", ""))})
         messages_payload.append({"role": "user", "content": prompt_context})
 
-        try:
-            if self.openai_key:
-                async with httpx.AsyncClient(timeout=10.0) as client:
+        prod_dict = {"product_name": product_name, "order_id": order_number, "platform": platform}
+
+        # 1. Try OpenAI
+        if self.openai_key and len(self.openai_key.strip()) > 5:
+            try:
+                async with httpx.AsyncClient(timeout=12.0) as client:
                     res = await client.post(
                         "https://api.openai.com/v1/chat/completions",
-                        headers={"Authorization": f"Bearer {self.openai_key}", "Content-Type": "application/json"},
+                        headers={"Authorization": f"Bearer {self.openai_key.strip()}", "Content-Type": "application/json"},
                         json={
-                            "model": "gpt-4o-mini",
+                            "model": os.getenv("OPENAI_MODEL", "gpt-4o"),
                             "messages": messages_payload,
-                            "temperature": 0.3,
-                            "max_tokens": 300
+                            "temperature": 0.5,
+                            "max_tokens": 400
                         }
                     )
                     if res.status_code == 200:
                         data = res.json()
                         reply = data["choices"][0]["message"]["content"].strip()
-                        badge = [MemoryUsedItem(type="environment", title="LLM Cognitive Reasoning", detail="Real-time multi-turn synthesis")]
-                        return reply, "LLM dynamic response", "Execute recommended diagnostic", [], [], badge
-        except Exception as e:
-            print(f"[RecallAI] External LLM error: {e}")
+                        badge = [MemoryUsedItem(type="environment", title="LLM Cognitive Reasoning", detail="Real-time multi-turn GPT-4o synthesis")]
+                        actions = derive_suggested_actions(reply, user_message, prod_dict)
+                        return reply, "LLM dynamic response", "Execute recommended diagnostic", [], [], badge, actions
+            except Exception as e:
+                print(f"[RecallAI] OpenAI call error: {e}")
+
+        # 2. Try Gemini
+        gemini_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
+        if gemini_key and len(gemini_key.strip()) > 5:
+            try:
+                gemini_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={gemini_key.strip()}"
+                contents = [{"role": "user", "parts": [{"text": system_prompt + "\n\n" + prompt_context}]}]
+                async with httpx.AsyncClient(timeout=12.0) as client:
+                    res = await client.post(gemini_url, headers={"Content-Type": "application/json"}, json={"contents": contents})
+                    if res.status_code == 200:
+                        data = res.json()
+                        reply = data["candidates"][0]["content"]["parts"][0]["text"].strip()
+                        badge = [MemoryUsedItem(type="environment", title="Gemini Multi-turn Reasoning", detail="Real-time synthesis")]
+                        actions = derive_suggested_actions(reply, user_message, prod_dict)
+                        return reply, "LLM dynamic response", "Execute recommended diagnostic", [], [], badge, actions
+            except Exception as e:
+                print(f"[RecallAI] Gemini call error: {e}")
 
         return None

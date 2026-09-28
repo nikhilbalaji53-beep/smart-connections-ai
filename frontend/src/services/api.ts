@@ -107,6 +107,36 @@ export const api = {
     return res.json();
   },
 
+  async sendSupportChat(payload: {
+    customer_id: string;
+    order_id?: string;
+    message: string;
+    history?: { role: string; content: string }[];
+    product_name?: string;
+    brand?: string;
+    category?: string;
+    platform?: string;
+    warranty_status?: string;
+  }): Promise<{
+    reply: string;
+    order_id: string;
+    product_name: string;
+    status: string;
+    suggested_actions: string[];
+    voice_prompt?: string;
+  }> {
+    const res = await fetch(`${API_BASE}/support/chat`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    if (!res.ok) {
+      const err = await res.text();
+      throw new Error(`Support chat request failed: ${err}`);
+    }
+    return res.json();
+  },
+
   async getCustomerConversations(customerId: string): Promise<any[]> {
     const res = await fetch(`${API_BASE}/chat/conversations/${customerId}`);
     if (!res.ok) throw new Error('Failed to fetch conversations');

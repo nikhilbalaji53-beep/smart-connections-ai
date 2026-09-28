@@ -16,7 +16,13 @@ import {
   User,
   ShoppingBag,
   ChevronRight,
-  Store
+  Store,
+  Mic,
+  MicOff,
+  Volume2,
+  VolumeX,
+  Square,
+  Radio
 } from 'lucide-react';
 
 interface CustomerChatViewProps {
@@ -199,6 +205,130 @@ export const CustomerChatView: React.FC<CustomerChatViewProps> = ({
   const [selectedSlot, setSelectedSlot] = useState('10:00 AM');
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  // Voice Support (STT + TTS) States
+  const [isListening, setIsListening] = useState(false);
+  const [isSpeaking, setIsSpeaking] = useState(false);
+  const [currentlySpeakingId, setCurrentlySpeakingId] = useState<string | null>(null);
+  const [autoReadAloud, setAutoReadAloud] = useState(false);
+  const recognitionRef = useRef<any>(null);
+
+  // Stop TTS
+  const stopSpeaking = () => {
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+    }
+    setIsSpeaking(false);
+    setCurrentlySpeakingId(null);
+  };
+
+  // Text-To-Speech (TTS)
+  const speakText = (text: string, messageId?: string) => {
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+
+      if (isSpeaking && currentlySpeakingId === messageId) {
+        setIsSpeaking(false);
+        setCurrentlySpeakingId(null);
+        return;
+      }
+
+      // Clean markdown tags for natural speech
+      const cleanText = text
+        .replace(/[*#_~`]/g, '')
+        .replace(/•/g, '')
+        .replace(/[🔍⚠️✓📦🛍️🎙️]/g, '')
+        .trim();
+
+      if (!cleanText) return;
+
+      const utterance = new SpeechSynthesisUtterance(cleanText);
+      utterance.rate = 1.0;
+      utterance.pitch = 1.0;
+
+      const voices = window.speechSynthesis.getVoices();
+      const naturalVoice = voices.find(
+        (v) =>
+          v.lang.startsWith('en') &&
+          (v.name.includes('Natural') ||
+            v.name.includes('Google') ||
+            v.name.includes('Samantha') ||
+            v.name.includes('Zira') ||
+            v.name.includes('David'))
+      );
+      if (naturalVoice) utterance.voice = naturalVoice;
+
+      utterance.onstart = () => {
+        setIsSpeaking(true);
+        setCurrentlySpeakingId(messageId || 'active');
+      };
+      utterance.onend = () => {
+        setIsSpeaking(false);
+        setCurrentlySpeakingId(null);
+      };
+      utterance.onerror = () => {
+        setIsSpeaking(false);
+        setCurrentlySpeakingId(null);
+      };
+
+      window.speechSynthesis.speak(utterance);
+    }
+  };
+
+  // Speech-To-Text (STT) Toggle
+  const toggleListening = () => {
+    if (isListening) {
+      if (recognitionRef.current) {
+        try { recognitionRef.current.stop(); } catch (_) {}
+      }
+      setIsListening(false);
+      return;
+    }
+
+    // Stop speaking if AI is talking
+    stopSpeaking();
+
+    const SpeechRecognition =
+      (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+
+    if (!SpeechRecognition) {
+      alert('Speech recognition is not supported in this browser. Please use Google Chrome, Microsoft Edge, or Safari.');
+      return;
+    }
+
+    try {
+      const recognition = new SpeechRecognition();
+      recognition.continuous = false;
+      recognition.interimResults = true;
+      recognition.lang = 'en-US';
+
+      recognition.onstart = () => {
+        setIsListening(true);
+      };
+
+      recognition.onresult = (event: any) => {
+        const transcript = Array.from(event.results)
+          .map((res: any) => res[0].transcript)
+          .join('');
+        setInputVal(transcript);
+      };
+
+      recognition.onerror = (event: any) => {
+        console.warn('[STT Error]', event.error);
+        setIsListening(false);
+      };
+
+      recognition.onend = () => {
+        setIsListening(false);
+      };
+
+      recognitionRef.current = recognition;
+      recognition.start();
+    } catch (err) {
+      console.error('[STT Initialization Error]', err);
+      setIsListening(false);
+    }
+  };
+
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
@@ -230,6 +360,10 @@ export const CustomerChatView: React.FC<CustomerChatViewProps> = ({
             : senderType === 'agent'
             ? 'Support Specialist'
             : 'RecallAI Grounded Support');
+
+        if (autoReadAloud && msg.sender !== 'customer' && msg.content) {
+          speakText(msg.content, `ws_${Date.now()}`);
+        }
 
         setMessages((prev) => {
           if (msg.sender === 'customer') {
@@ -283,8 +417,12 @@ export const CustomerChatView: React.FC<CustomerChatViewProps> = ({
 
     return () => {
       unsubscribe();
+      stopSpeaking();
+      if (recognitionRef.current) {
+        try { recognitionRef.current.stop(); } catch (_) {}
+      }
     };
-  }, [customer.id]);
+  }, [customer.id, autoReadAloud]);
 
   const handleStartProductSupport = (product: PurchasedProduct) => {
     setSelectedProduct(product);
@@ -649,14 +787,64 @@ export const CustomerChatView: React.FC<CustomerChatViewProps> = ({
               </div>
             </div>
 
-            <div className="flex items-center space-x-2 text-[11px]">
-              <span className="px-2 py-0.5 rounded-md bg-slate-800 text-slate-300 border border-slate-700">
-                Purchased: {selectedProduct.purchaseDate}
-              </span>
-              <span className="px-2 py-0.5 rounded-md bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-bold">
+            <div className="flex flex-wrap items-center gap-2 text-[11px]">
+              {/* Voice Support Header Controls */}
+              <button
+                type="button"
+                onClick={toggleListening}
+                className={`px-3 py-1.5 rounded-xl font-bold text-xs flex items-center space-x-1.5 transition-all shadow-xs cursor-pointer ${
+                  isListening
+                    ? 'bg-rose-600 text-white animate-pulse ring-2 ring-rose-400'
+                    : 'bg-indigo-600 hover:bg-indigo-500 text-white'
+                }`}
+                title={isListening ? 'Click to stop listening' : 'Start Voice Support with AI'}
+              >
+                {isListening ? (
+                  <>
+                    <Radio className="w-3.5 h-3.5 animate-spin" />
+                    <span>Listening...</span>
+                  </>
+                ) : (
+                  <>
+                    <Mic className="w-3.5 h-3.5" />
+                    <span>Talk to AI</span>
+                  </>
+                )}
+              </button>
+
+              {isSpeaking && (
+                <button
+                  type="button"
+                  onClick={stopSpeaking}
+                  className="px-2.5 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold flex items-center space-x-1 animate-pulse cursor-pointer"
+                  title="Stop AI voice playback"
+                >
+                  <Square className="w-3 h-3 fill-white" />
+                  <span>Stop Voice</span>
+                </button>
+              )}
+
+              <button
+                type="button"
+                onClick={() => {
+                  if (autoReadAloud) stopSpeaking();
+                  setAutoReadAloud(!autoReadAloud);
+                }}
+                className={`px-2.5 py-1.5 rounded-xl border text-[11px] font-semibold flex items-center space-x-1.5 transition-colors cursor-pointer ${
+                  autoReadAloud
+                    ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
+                    : 'bg-slate-800 text-slate-400 border-slate-700 hover:text-slate-200'
+                }`}
+                title={autoReadAloud ? 'Auto-voice read enabled: AI replies are spoken aloud' : 'Enable auto-voice read aloud'}
+              >
+                {autoReadAloud ? <Volume2 className="w-3.5 h-3.5 text-emerald-400" /> : <VolumeX className="w-3.5 h-3.5 text-slate-400" />}
+                <span className="hidden sm:inline">Auto-Voice {autoReadAloud ? 'ON' : 'OFF'}</span>
+              </button>
+
+              <span className="px-2 py-0.5 rounded-md bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-bold hidden md:inline">
                 Warranty: {selectedProduct.warrantyStatus}
               </span>
-              <span className="px-2 py-0.5 rounded-md bg-blue-500/20 text-blue-300 border border-blue-500/30">
+              <span className="px-2 py-0.5 rounded-md bg-blue-500/20 text-blue-300 border border-blue-500/30 hidden lg:inline">
                 Delivery: {selectedProduct.deliveryStatus}
               </span>
             </div>
@@ -735,7 +923,26 @@ export const CustomerChatView: React.FC<CustomerChatViewProps> = ({
                       {/* Sender label */}
                       <div className="flex items-center justify-between pb-1 mb-1 border-b border-black/5 text-[10px] font-black uppercase tracking-wider">
                         <span>{m.senderName}</span>
-                        <span className="font-normal opacity-60 text-[9px]">{m.timestamp}</span>
+                        <div className="flex items-center space-x-2">
+                          {!isUser && (
+                            <button
+                              type="button"
+                              onClick={() => speakText(m.content, m.id)}
+                              className="text-slate-500 hover:text-blue-600 transition-colors p-0.5 rounded cursor-pointer flex items-center space-x-1"
+                              title={currentlySpeakingId === m.id ? 'Stop voice reading' : 'Listen to this response aloud'}
+                            >
+                              {currentlySpeakingId === m.id ? (
+                                <Square className="w-3 h-3 text-amber-600 fill-amber-600 animate-pulse" />
+                              ) : (
+                                <Volume2 className="w-3 h-3 text-slate-500 hover:text-blue-600" />
+                              )}
+                              <span className="text-[9px] font-normal normal-case">
+                                {currentlySpeakingId === m.id ? 'Stop' : 'Listen'}
+                              </span>
+                            </button>
+                          )}
+                          <span className="font-normal opacity-60 text-[9px]">{m.timestamp}</span>
+                        </div>
                       </div>
 
                       <div className="whitespace-pre-line font-medium">{m.content}</div>
@@ -782,15 +989,44 @@ export const CustomerChatView: React.FC<CustomerChatViewProps> = ({
             <div ref={messagesEndRef} />
           </div>
 
-          {/* Chat Input Bar */}
+          {/* Chat Input Bar with Integrated Mic & Keyboard */}
           <div className="p-3 sm:p-4 bg-white border-t border-slate-200 space-y-2">
+            {isListening && (
+              <div className="flex items-center justify-between px-3 py-1.5 bg-rose-50 border border-rose-200 rounded-xl text-rose-700 text-xs font-semibold animate-pulse">
+                <div className="flex items-center space-x-2">
+                  <span className="w-2 h-2 rounded-full bg-rose-600 animate-ping" />
+                  <span>Listening... Speak your problem clearly into your microphone</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={toggleListening}
+                  className="text-rose-700 font-bold hover:underline cursor-pointer"
+                >
+                  Done Speaking
+                </button>
+              </div>
+            )}
+
             <div className="flex items-center space-x-2">
+              <button
+                type="button"
+                onClick={toggleListening}
+                className={`p-2.5 rounded-xl border transition-all cursor-pointer flex items-center justify-center ${
+                  isListening
+                    ? 'bg-rose-600 text-white border-rose-600 ring-2 ring-rose-400 animate-pulse'
+                    : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-300'
+                }`}
+                title={isListening ? 'Click to stop listening' : 'Click to speak your message (Voice-to-Text)'}
+              >
+                {isListening ? <MicOff className="w-4 h-4 text-white" /> : <Mic className="w-4 h-4 text-slate-700" />}
+              </button>
+
               <input
                 type="text"
                 value={inputVal}
                 onChange={(e) => setInputVal(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
-                placeholder="Describe your problem naturally (e.g. My laptop is not charging)..."
+                placeholder="Describe your problem or click 🎙️ to speak..."
                 className="flex-1 bg-slate-50 border border-slate-300 rounded-xl px-4 py-2.5 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-600 focus:bg-white transition-colors"
               />
 
@@ -805,7 +1041,7 @@ export const CustomerChatView: React.FC<CustomerChatViewProps> = ({
               </button>
             </div>
             <div className="flex items-center justify-between text-[10px] text-slate-400 px-1">
-              <span>No categories needed. RecallAI automatically matches your purchased product context.</span>
+              <span>⌨️ Keyboard or 🎙️ Voice supported. Zero canned messages guaranteed.</span>
               <button
                 type="button"
                 onClick={() => setShowBookingModal(true)}

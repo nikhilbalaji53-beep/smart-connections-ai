@@ -15,7 +15,7 @@ load_dotenv()
 
 from .models.base import Base, engine, SessionLocal
 from .models.entities import Customer
-from .api import customers, memory, chat, tickets, kb, escalation, analytics, demo, live_ws, crawler
+from .api import customers, memory, chat, tickets, kb, escalation, analytics, demo, live_ws, crawler, support_chat
 from database.seed.seed_data import seed_database
 
 app = FastAPI(
@@ -37,6 +37,7 @@ app.add_middleware(
 app.include_router(customers.router, prefix="/api")
 app.include_router(memory.router, prefix="/api")
 app.include_router(chat.router, prefix="/api")
+app.include_router(support_chat.router, prefix="/api")
 app.include_router(tickets.router, prefix="/api")
 app.include_router(kb.router, prefix="/api")
 app.include_router(crawler.router, prefix="/api")
