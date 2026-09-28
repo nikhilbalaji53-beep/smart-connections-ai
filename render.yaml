@@ -1,13 +1,11 @@
 services:
   - type: web
     name: recallai
-    runtime: python
-    buildCommand: "npm --prefix frontend install && npm --prefix frontend run build && pip install -r backend/requirements.txt"
-    startCommand: "python -m uvicorn backend.app.main:app --host 0.0.0.0 --port $PORT"
+    runtime: docker
+    dockerfilePath: ./Dockerfile
     envVars:
       - key: DATABASE_URL
         value: sqlite:///./database/recallai.db
       - key: PYTHONPATH
-        value: .
-      - key: PYTHON_VERSION
-        value: 3.11.0
+        value: /app
+    healthCheckPath: /api/health
