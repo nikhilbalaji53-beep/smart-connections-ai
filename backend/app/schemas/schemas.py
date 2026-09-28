@@ -184,6 +184,8 @@ class ChatRequest(BaseModel):
     conversationId: Optional[str] = None
     product_id: Optional[str] = None
     productId: Optional[str] = None
+    product_info: Optional[Dict[str, Any]] = None
+    productInfo: Optional[Dict[str, Any]] = None
     attachments: Optional[List[str]] = None
 
 class MemoryUsedItem(BaseModel):

@@ -95,9 +95,10 @@ class AIOrchestrator:
 
         # 9. Short Affirmation / Continue instructions
         if any(msg == w or msg.startswith(w + " ") for w in [
-            "continue", "continue with support", "yes", "yeah", "yep", "sure", "ok", "okay",
+            "continue", "continue with support", "continue troubleshooting", "yes", "yeah", "yep", "sure", "ok", "okay", "k",
             "yes please", "go ahead", "please continue", "what next", "what next?", "next",
-            "solve it", "solve this", "fix it", "help", "let's continue", "let's do that"
+            "solve it", "solve this", "fix it", "help", "let's continue", "let's do that",
+            "alright", "all right", "fine", "cool", "got it", "understood", "proceed", "troubleshoot", "step by step"
         ]):
             return "AFFIRMATION"
 
@@ -270,7 +271,7 @@ class AIOrchestrator:
         )
 
         # 4. Generate Contextual AI Response
-        ai_text, recommended_action, contingency_step, related_ticket_ids, avoided_solutions, memory_used_badges = (
+        ai_text, recommended_action, contingency_step, related_ticket_ids, avoided_solutions, memory_used_badges, suggested_actions = (
             await self._synthesize_ai_response(
                 customer=customer,
                 user_message=user_message,
@@ -343,7 +344,7 @@ class AIOrchestrator:
             active_ticket_id=conv.active_ticket_id
         )
 
-        actions_list = [contingency_step] if contingency_step else []
+        actions_list = suggested_actions if (suggested_actions and len(suggested_actions) > 0) else ([contingency_step] if contingency_step else [])
 
         return ChatResponse(
             conversation_id=conversation_id,
@@ -448,7 +449,7 @@ class AIOrchestrator:
                     warranty=p_warranty
                 )
                 if external_resp:
-                    return external_resp
+                    return external_resp[0], external_resp[1], external_resp[2], external_resp[3], external_resp[4], external_resp[5], ["Continue", "Book Technician"]
             except Exception as e:
                 print(f"[RecallAI] LLM error: {e}. Utilizing native cognitive engine.")
 
@@ -467,7 +468,7 @@ class AIOrchestrator:
                 f"I'll continue directly from the information you've already provided without asking redundant questions.\n\n"
                 f"Would you like me to connect you with our specialist team or arrange a technician inspection right away?"
             )
-            return text, "Acknowledge frustration and skip to direct resolution", "Tier-3 Handover", related_ticket_ids, avoided_solutions, memory_used_badges
+            return text, "Acknowledge frustration and skip to direct resolution", "Tier-3 Handover", related_ticket_ids, avoided_solutions, memory_used_badges, ["Book Technician", "Connect to Human Agent"]
 
         # =========================================================================
         # 2. TOPIC SHIFT / ORDER STATUS / DELIVERY INQUIRY (Section 13 & 14)
@@ -482,7 +483,7 @@ class AIOrchestrator:
                 f"According to our connected logistics record, your original order was marked delivered, and any active replacement tracking is synchronized with our courier partners.\n\n"
                 f"Would you like me to check the specific dispatch tracking number or assist with a delivery issue?"
             )
-            return text, "Provide order delivery details from connected commerce platform", "Logistics status", related_ticket_ids, avoided_solutions, memory_used_badges
+            return text, "Provide order delivery details from connected commerce platform", "Logistics status", related_ticket_ids, avoided_solutions, memory_used_badges, ["Track Shipment", "View Delivery ETA"]
 
         # =========================================================================
         # 3. REFUND / RETURN REQUEST (Section 22 Test 4)
@@ -497,7 +498,7 @@ class AIOrchestrator:
                 f"Because this purchase is registered with active warranty protection, I can generate a prepaid return shipping label and initiate the refund processing to your original payment method.\n\n"
                 f"Would you like me to proceed with generating your return authorization label?"
             )
-            return text, "Initiate refund and return authorization workflow", "Generate Return Label", related_ticket_ids, avoided_solutions, memory_used_badges
+            return text, "Initiate refund and return authorization workflow", "Generate Return Label", related_ticket_ids, avoided_solutions, memory_used_badges, ["Generate Return Label", "Refund Policy Details"]
 
         # =========================================================================
         # 4. REPLACEMENT / WRONG PRODUCT (Section 22 Test 3 & Test 10)
@@ -512,7 +513,7 @@ class AIOrchestrator:
                 f"I have pulled up your order details. I can immediately schedule a pickup for the incorrect item and expedite shipment of your replacement unit.\n\n"
                 f"Would you like me to confirm the replacement shipment for you?"
             )
-            return text, "Initiate wrong product replacement & return pickup", "Expedite replacement unit", related_ticket_ids, avoided_solutions, memory_used_badges
+            return text, "Initiate wrong product replacement & return pickup", "Expedite replacement unit", related_ticket_ids, avoided_solutions, memory_used_badges, ["Confirm Replacement Address", "Courier Pickup Info"]
 
         # =========================================================================
         # 5. THANK YOU / CLOSING (Section 22 Test 9)
@@ -527,7 +528,7 @@ class AIOrchestrator:
                 f"You're very welcome, {customer.name}! I'm glad I could help you with your {p_name}.\n\n"
                 f"Your conversation and verified history remain securely stored in RecallAI, so you'll never have to repeat your story. Have a wonderful day!"
             )
-            return text, "Session closed gracefully", "Memory saved for future interactions", related_ticket_ids, avoided_solutions, memory_used_badges
+            return text, "Session closed gracefully", "Memory saved for future interactions", related_ticket_ids, avoided_solutions, memory_used_badges, ["Save Transcript", "Rate Support"]
 
         # =========================================================================
         # 6. HUMAN AGENT REQUEST (Section 22 Test 8)
@@ -543,7 +544,7 @@ class AIOrchestrator:
                 f"Our agent will receive your complete profile: your {p_name} purchase on {p_platform} ({p_order}), your active warranty, and all troubleshooting steps attempted so far.\n\n"
                 f"**You will not need to repeat anything.** Connecting you now..."
             )
-            return text, "Connect customer to human support agent with full memory", "Live Support Transfer", related_ticket_ids, avoided_solutions, memory_used_badges
+            return text, "Connect customer to human support agent with full memory", "Live Support Transfer", related_ticket_ids, avoided_solutions, memory_used_badges, ["Connecting to Agent..."]
 
         # =========================================================================
         # 7. TECHNICIAN BOOKING REQUEST / CONFIRMATION (Section 7 & 12)
@@ -565,7 +566,7 @@ class AIOrchestrator:
                 f"**Warranty:**\n{p_warranty}\n\n"
                 f"Let's choose your preferred appointment time."
             )
-            return text, "Technician booking confirmed with pre-forwarded memory packet", "Technician dispatched", related_ticket_ids, avoided_solutions, memory_used_badges
+            return text, "Technician booking confirmed with pre-forwarded memory packet", "Technician dispatched", related_ticket_ids, avoided_solutions, memory_used_badges, ["Select Appointment Time", "Review Booking Details"]
 
         # =========================================================================
         # 8. SPECIALIZED AI AGENTS DISPATCH (Security, Hardware, Cellular, Transfers)
@@ -584,7 +585,7 @@ class AIOrchestrator:
                 warranty_status=p_warranty,
                 memory_used_badges=memory_used_badges
             )
-            return agent_reply, rec_action, cont_step, related_ticket_ids, avoided_solutions, updated_badges
+            return agent_reply, rec_action, cont_step, related_ticket_ids, avoided_solutions, updated_badges, suggested_actions
 
         # =========================================================================
         # 9. HIGH-RELEVANCE UNIVERSAL KB / EXPLICIT NON-DEFAULT PRODUCT MATCH
@@ -613,7 +614,7 @@ class AIOrchestrator:
                 f"**Verified Action Steps:**\n{steps_formatted}\n\n"
                 f"Would you like me to guide you through these steps or arrange certified technician support?"
             )
-            return text, f"Apply universal KB guidance for {best_kb.category}", "Execute recommended KB procedure", related_ticket_ids, avoided_solutions, memory_used_badges
+            return text, f"Apply universal KB guidance for {best_kb.category}", "Execute recommended KB procedure", related_ticket_ids, avoided_solutions, memory_used_badges, ["Execute KB Procedure", "Book Technician"]
 
         # =========================================================================
         # 10. REAL-TIME CONVERSATIONAL DIALOGUE ENGINE (ChatGPT-Style State Machine)
@@ -629,7 +630,7 @@ class AIOrchestrator:
             conversation_history=conversation_history,
             memory_used_badges=memory_used_badges
         )
-        return reply_text, rec_action, cont_step, related_ticket_ids, avoided_solutions, updated_badges
+        return reply_text, rec_action, cont_step, related_ticket_ids, avoided_solutions, updated_badges, suggested_actions
 
     def generate_support_agent_suggestions(
         self,

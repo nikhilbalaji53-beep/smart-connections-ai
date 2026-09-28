@@ -138,16 +138,17 @@ class LiveSupportWSClient {
     });
   }
 
-  public sendCustomerMessage(message: string, conversationId?: string) {
+  public sendCustomerMessage(message: string, conversationId?: string, productInfo?: any) {
     this.send({
       type: 'customer_message',
       message,
-      conversation_id: conversationId
+      conversation_id: conversationId,
+      product_info: productInfo
     });
   }
 
-  public sendMessage(message: string, conversationId?: string) {
-    this.sendCustomerMessage(message, conversationId);
+  public sendMessage(message: string, conversationId?: string, productInfo?: any) {
+    this.sendCustomerMessage(message, conversationId, productInfo);
   }
 
   public sendAgentMessage(message: string) {

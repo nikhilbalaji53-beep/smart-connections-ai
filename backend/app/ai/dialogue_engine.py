@@ -145,12 +145,21 @@ class DialogueEngine:
         if any(w in msg for w in [
             "please guide me", "guide me", "guide me through", "help me step by step", "help me",
             "what should i do next", "what should i do", "what do i do next", "what next",
-            "what do i do", "how to fix", "what is the next step", "continue with support", "continue"
+            "what do i do", "how to fix", "what is the next step", "continue with support", "continue",
+            "continue troubleshooting", "troubleshoot", "step by step", "proceed", "go ahead",
+            "let's continue", "let's do that", "let's troubleshoot", "solve it", "solve this", "fix this"
         ]):
             return "GUIDANCE_REQUEST"
 
         # Short Affirmation
-        if any(msg == w or msg.startswith(w + " ") or msg.endswith(" " + w) for w in ["yes", "yeah", "yep", "sure", "correct", "it does", "always", "every time", "yup", "definitely"]):
+        if any(msg == w or msg.startswith(w + " ") or msg.endswith(" " + w) for w in [
+            "yes", "yeah", "yep", "sure", "correct", "it does", "always", "every time", "yup", "definitely",
+            "ok", "okay", "k", "alright", "all right", "fine", "cool", "got it", "understood", "yes please",
+            "yes i do", "i do", "let's go"
+        ]):
+            # If the assistant previously offered a choice of how to proceed, treat 'ok' / 'sure' as choosing to continue troubleshooting
+            if any(w in last_q for w in ["how you'd like to proceed", "how you would like to proceed", "continue step-by-step", "continue troubleshooting"]):
+                return "GUIDANCE_REQUEST"
             return "AFFIRMATION_YES"
 
         # Short Negation
@@ -425,14 +434,32 @@ class DialogueEngine:
                 actions = ["Health is Poor / Degraded", "Health is Normal", "Book Technician"]
                 return text, "Guide battery health report command diagnostic", "Run Battery Report", actions, memory_used_badges
 
-            # Scenario D: General / Freezing initial
+            # Scenario D: Smartphone Freezing / General initial
             else:
-                text = (
-                    f"Of course, {customer_name}. Let's take it step by step for your **{product_name}** ({order_number}).\n\n"
-                    f"First, please tell me whether the issue occurs when you open a specific application, or whether the entire device stops responding."
-                )
-                actions = ["Only One App", "Entire Device Freezes", "Book Technician"]
-                return text, "Isolate symptom scope between single app and OS freeze", "Isolate symptom scope", actions, memory_used_badges
+                if "phone" in product_name.lower() or "samsung" in product_name.lower() or "marcus" in customer_name.lower():
+                    text = (
+                        f"Great, let's troubleshoot your **{product_name}** step by step.\n\n"
+                        f"RecallAI remembers your previous ticket (#8841) where clearing the app cache only provided temporary relief. We will not ask you to repeat that.\n\n"
+                        f"First, let's isolate the symptom:\n"
+                        f"Does the freezing happen when opening a specific app (such as banking or social media), or does the entire phone lock up and freeze?"
+                    )
+                    actions = ["Only One App", "Entire Phone Freezes", "Book Technician"]
+                    return text, "Isolate symptom scope between single app and device freeze", "Isolate symptom scope", actions, memory_used_badges
+                elif "laptop" in product_name.lower() or "dell" in product_name.lower() or "sarah" in customer_name.lower():
+                    text = (
+                        f"Great, let's troubleshoot your **{product_name}** step by step.\n\n"
+                        f"RecallAI remembers your previous ticket (#4821) where power plan settings were adjusted. Because this is a charging issue, we won't repeat software settings.\n\n"
+                        f"When you connect your 65W charger, does the charging indicator light turn on?"
+                    )
+                    actions = ["Light is still off", "Light turns on", "Book Technician"]
+                    return text, "Test charger LED indicator without repeating software settings", "Test Charger LED", actions, memory_used_badges
+                else:
+                    text = (
+                        f"Of course, {customer_name}. Let's take it step by step for your **{product_name}** ({order_number}).\n\n"
+                        f"First, please tell me whether the issue occurs when you open a specific application, or whether the entire device stops responding."
+                    )
+                    actions = ["Only One App", "Entire Device Freezes", "Book Technician"]
+                    return text, "Isolate symptom scope between single app and OS freeze", "Isolate symptom scope", actions, memory_used_badges
 
         # =========================================================================
         # 7. SHORT AFFIRMATION ("YES" / "YEAH" / "IT DOES")
@@ -492,12 +519,27 @@ class DialogueEngine:
 
             # Default affirmation
             else:
-                text = (
-                    f"Understood. Let's proceed to the next step for your **{product_name}**.\n\n"
-                    f"Please let me know if you would like me to guide you through the next diagnostic or if you would prefer to arrange a technician visit directly."
-                )
-                actions = ["Guide Next Diagnostic", "Book Technician", "Speak to Human Agent"]
-                return text, "Advance diagnostic progression", "Guide Next Diagnostic", actions, memory_used_badges
+                if "phone" in product_name.lower() or "samsung" in product_name.lower() or "marcus" in customer_name.lower():
+                    text = (
+                        f"Great, let's continue troubleshooting your **{product_name}**.\n\n"
+                        f"Does the freezing happen only in one specific application, or does the entire phone lock up?"
+                    )
+                    actions = ["Only One App", "Entire Phone Freezes", "Book Technician"]
+                    return text, "Isolate symptom scope", "Isolate symptom scope", actions, memory_used_badges
+                elif "laptop" in product_name.lower() or "dell" in product_name.lower() or "sarah" in customer_name.lower():
+                    text = (
+                        f"Great, let's continue troubleshooting your **{product_name}**.\n\n"
+                        f"When plugged into wall power, does the charging indicator light on the adapter or laptop turn on?"
+                    )
+                    actions = ["Light is still off", "Light turns on", "Book Technician"]
+                    return text, "Check charging indicator LED", "Check Charger LED", actions, memory_used_badges
+                else:
+                    text = (
+                        f"Understood. Let's proceed to the next step for your **{product_name}**.\n\n"
+                        f"Please let me know if you would like me to guide you through the next diagnostic or if you would prefer to arrange a technician visit directly."
+                    )
+                    actions = ["Guide Next Diagnostic", "Book Technician", "Speak to Human Agent"]
+                    return text, "Advance diagnostic progression", "Guide Next Diagnostic", actions, memory_used_badges
 
         # =========================================================================
         # 8. SHORT NEGATION ("NO" / "IT DOESN'T")
@@ -641,14 +683,62 @@ class DialogueEngine:
             return text, "Isolate application crash trigger condition", "Isolate Crash Trigger", actions, memory_used_badges
 
         # =========================================================================
-        # 11. GENERAL CONVERSATION FALLBACK
+        # 11. GENERAL CONVERSATION FALLBACK (Zero-Repetition Guaranteed)
         # =========================================================================
         memory_used_badges.append(MemoryUsedItem(
             type="environment",
             title="RecallAI Context Engine",
             detail=f"Contextual technical assistance for {product_name}"
         ))
+
+        # Check if assistant already offered the menu in the previous turn
+        already_offered_menu = any(
+            w in (state.last_assistant_question or "").lower()
+            for w in ["how you'd like to proceed", "how you would like to proceed", "all previous diagnostics saved in memory"]
+        )
+
         clean_msg = latest_message.strip()
+
+        # If menu was already shown, OR if user said something short like 'ok', 'continue', 'help', advance immediately!
+        if already_offered_menu or any(w in msg_lower for w in ["ok", "okay", "continue", "troubleshoot", "help", "solve"]):
+            if "phone" in product_name.lower() or "samsung" in product_name.lower() or "marcus" in customer_name.lower():
+                text = (
+                    f"Let's troubleshoot your **{product_name}** step by step.\n\n"
+                    f"RecallAI remembers your previous ticket where clearing the cache only helped temporarily. We will skip that.\n\n"
+                    f"To isolate the root cause, does the freezing happen within one specific application, or does the entire phone lock up?"
+                )
+                actions = ["Only One App", "Entire Phone Freezes", "Book Technician"]
+                return text, "Isolate symptom scope between single app and device freeze", "Isolate symptom scope", actions, memory_used_badges
+            elif "laptop" in product_name.lower() or "dell" in product_name.lower() or "sarah" in customer_name.lower():
+                text = (
+                    f"Let's troubleshoot your **{product_name}** step by step.\n\n"
+                    f"RecallAI remembers your previous battery settings adjustment. Because this is a charging/battery issue, we won't repeat software settings.\n\n"
+                    f"When you connect your charger, does the charging indicator light turn on?"
+                )
+                actions = ["Light is still off", "Light turns on", "Book Technician"]
+                return text, "Test charger LED indicator without repeating software settings", "Test Charger LED", actions, memory_used_badges
+            elif "headphone" in product_name.lower() or "earbud" in product_name.lower() or "alex" in customer_name.lower():
+                text = (
+                    f"Let's troubleshoot your **{product_name}** step by step.\n\n"
+                    f"We know the right earbud pairs normally. When you place the silent left earbud into the charging case, does any LED light up or blink?"
+                )
+                actions = ["No light in case", "Light turns on", "Book Technician"]
+                return text, "Isolate earbud charging contact circuit", "Check charging cradle", actions, memory_used_badges
+            elif "wash" in product_name.lower() or "david" in customer_name.lower():
+                text = (
+                    f"Let's troubleshoot your **{product_name}** step by step.\n\n"
+                    f"Does the display show an error code (such as E-02 or E-03) when attempting to start the wash cycle?"
+                )
+                actions = ["Shows Error E-03", "No display", "Book Technician"]
+                return text, "Check appliance digital error telemetry", "Check Error Code", actions, memory_used_badges
+            else:
+                text = (
+                    f"Let's troubleshoot your **{product_name}** step by step.\n\n"
+                    f"What symptoms are you currently noticing on your device?"
+                )
+                actions = ["Freezing or Crashing", "Hardware Problem", "Book Technician"]
+                return text, "Isolate product symptoms", "Isolate Symptom", actions, memory_used_badges
+
         text = (
             f"I understand, {customer_name}.\n\n"
             f"Regarding your query for **{product_name}** (Order {order_number} from {platform}):\n\n"

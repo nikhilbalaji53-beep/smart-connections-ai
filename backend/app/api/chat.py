@@ -16,7 +16,7 @@ async def send_chat_message(request: ChatRequest, db: Session = Depends(get_db))
     cust_id = request.customer_id or request.customerId or "CUST-001"
     conv_id = request.conversation_id or request.conversationId
     prod_id = request.product_id or request.productId
-    prod_info = {"id": prod_id} if prod_id else None
+    prod_info = request.product_info or request.productInfo or ({"id": prod_id} if prod_id else None)
     try:
         response = await orchestrator.generate_response(
             customer_id=cust_id,

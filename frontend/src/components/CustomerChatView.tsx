@@ -312,7 +312,7 @@ export const CustomerChatView: React.FC<CustomerChatViewProps> = ({
     const userMsg: MessageItem = {
       id: `user_${Date.now()}`,
       sender: 'customer',
-      senderName: customer.name || 'Sarah',
+      senderName: customer.name || 'Customer',
       content: text,
       timestamp: curTime,
       deliveryStatus: 'Sent'
@@ -323,8 +323,13 @@ export const CustomerChatView: React.FC<CustomerChatViewProps> = ({
     setIsTyping(true);
     setTypingMessage('🔍 Checking product information...');
 
-    // Send to WebSocket
-    liveWS.sendMessage(text);
+    // Send to WebSocket with contextual product metadata
+    liveWS.sendMessage(text, undefined, selectedProduct ? {
+      name: selectedProduct.name,
+      orderNumber: selectedProduct.orderNumber,
+      platform: selectedProduct.platform,
+      warrantyStatus: selectedProduct.warrantyStatus
+    } : undefined);
   };
 
   const handleBookTechnician = () => {

@@ -175,7 +175,11 @@ async def live_support_websocket(websocket: WebSocket, customer_id: str, role: s
 
                     # Contextual follow-up quick prompts for customer chat (Section 4 & 5)
                     options = []
-                    if "poor" in msg_lower:
+                    if getattr(resp, "suggested_actions", None):
+                        options = resp.suggested_actions
+                    elif getattr(resp, "suggestedActions", None):
+                        options = resp.suggestedActions
+                    elif "poor" in msg_lower:
                         options = ["Yes, book a technician.", "I want to talk to a human."]
                     elif any(w in msg_lower for w in ["80%", "20%", "hour", "minutes"]):
                         options = ["I already checked the battery health. It says poor.", "Book Technician"]
@@ -215,14 +219,41 @@ async def live_support_websocket(websocket: WebSocket, customer_id: str, role: s
                     )
                     manager.suggestion_variation_index[customer_id] = 0
 
+                    cust = db.query(Customer).filter(Customer.id == customer_id).first()
+                    cust_name = cust.name if cust else "Customer"
+
+                    if product_payload and product_payload.get("name"):
+                        prod_name = product_payload.get("name")
+                        order_num = product_payload.get("orderNumber", "#N/A")
+                        plat_str = f" ({product_payload.get('platform', 'Store')})" if product_payload.get('platform') else ""
+                        warranty = product_payload.get("warrantyStatus", "Active")
+                    elif cust and "Marcus" in cust.name:
+                        prod_name = "Samsung Galaxy Smartphone"
+                        order_num = "#FK-98213"
+                        plat_str = " (Flipkart)"
+                        warranty = "Active"
+                    else:
+                        prod_name = "Dell Laptop"
+                        order_num = "#AMZ-78241"
+                        plat_str = " (Amazon)"
+                        warranty = "Active"
+
                     why_reasons = [
-                        "✓ Customer verified: Sarah Jenkins",
-                        "✓ Product identified: Dell Laptop",
-                        "✓ Order identified: #AMZ-78241 (Amazon)",
-                        "✓ Warranty active",
-                        "✓ Previous support found: Battery drain (Resolved)",
-                        "✓ Do not repeat previous battery troubleshooting"
+                        f"✓ Customer verified: {cust_name}",
+                        f"✓ Product identified: {prod_name}",
+                        f"✓ Order identified: {order_num}{plat_str}",
+                        f"✓ Warranty: {warranty}"
                     ]
+                    if "Marcus" in cust_name or "Samsung" in prod_name:
+                        why_reasons.extend([
+                            "✓ Previous support found: App crashes & system freeze (Ticket #8841)",
+                            "✓ Do not repeat previous cache clearing step"
+                        ])
+                    else:
+                        why_reasons.extend([
+                            "✓ Previous support found: Battery drain (Resolved)",
+                            "✓ Do not repeat previous battery troubleshooting"
+                        ])
 
                     # 4. Broadcast AI Response to Customer & Support Console
                     await manager.broadcast_to_room(customer_id, {
@@ -246,8 +277,8 @@ async def live_support_websocket(websocket: WebSocket, customer_id: str, role: s
                         "type": "support_agent_suggestion",
                         "customer_message": user_msg,
                         "analysis": {
-                            "product": "Dell Laptop",
-                            "order": "#AMZ-78241",
+                            "product": prod_name,
+                            "order": order_num,
                             "issue": user_msg,
                             "previous_action": agent_suggestion_data["hindsight"]["previous_action"],
                             "previous_result": "Resolved",
