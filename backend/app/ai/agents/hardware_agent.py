@@ -82,11 +82,71 @@ class HardwareDiagnosticsAgent:
             suggested_actions = ["Book Technician", "Check Accidental Damage Coverage", "Pre-Repair Backup Help"]
             return text, "Offer authorized hardware repair & technician booking", "Book Technician", suggested_actions, memory_used_badges
 
-        # Default Hardware Diagnostic
-        text = (
-            f"I have initialized the Hardware Diagnostic Agent for your **{product_name}** (Order {order_number} on {platform}).\n\n"
-            f"Your active warranty status is: **{warranty_status}**.\n\n"
-            f"Please describe the physical symptom (e.g. charging port, buttons, display, thermal), and I will guide you through targeted diagnostics or dispatch a certified repair technician."
-        )
-        suggested_actions = ["Book Technician", "Hardware Diagnostic Suite", "Warranty Claim"]
-        return text, "Hardware repair assistance", "Book Technician", suggested_actions, memory_used_badges
+        # 4. Diagnostic Step Responses (Progression from Step 1)
+        if any(w in msg_l for w in ["amber", "flashing", "blinking", "white light", "flashing light", "blinking light"]):
+            text = (
+                f"An amber-and-white blinking light pattern on your **{product_name}** indicates a specific Dell POST hardware diagnostic code:\n\n"
+                f"• **2 Amber, 3 White:** System memory (RAM) failure or unseated memory module\n"
+                f"• **3 Amber, 1 White:** CMOS battery or RTC power loss\n"
+                f"• **2 Amber, 4 White:** Mainboard power management controller (PMIC) fault\n\n"
+                f"Does the LED blink in a specific repeating pattern, or does it stay solid amber?"
+            )
+            suggested_actions = ["2 Amber, 3 White", "Solid Amber Light", "Flashing Continuously", "Book Technician"]
+            return text, "Diagnose Dell LED blink code sequence", "Identify Blink Code", suggested_actions, memory_used_badges
+
+        if any(w in msg_l for w in ["beep", "beeps", "beeping"]):
+            text = (
+                f"Diagnostic beep codes on your **{product_name}** signal a low-level hardware or BIOS POST failure:\n\n"
+                f"• **1 Beep:** BIOS ROM checksum failure\n"
+                f"• **3 Beeps:** System chipset or motherboard bus error\n"
+                f"• **4 Beeps:** Memory read / write failure\n\n"
+                f"How many distinct beeps do you hear before the pause?"
+            )
+            suggested_actions = ["Continuous Beeps", "3 Short Beeps", "4 Beeps", "Book Technician"]
+            return text, "Analyze hardware diagnostic beep code sequence", "Analyze Beep Sequence", suggested_actions, memory_used_badges
+
+        if any(w in msg_l for w in ["no light", "no lights", "no beep", "no beeps", "dark", "nothing happens", "not starting"]):
+            text = (
+                f"If the ePSA diagnostic does not launch and the status LED remains completely unlit, this indicates an open-circuit failure in the DC-in charging port or an internal PMIC motherboard power rail on your **{product_name}**.\n\n"
+                f"Because your order {order_number} has **Active Warranty Protection ({warranty_status})**, this requires physical hardware inspection rather than software configuration.\n\n"
+                f"Would you like to schedule an authorized technician visit for a motherboard/port repair under warranty?"
+            )
+            suggested_actions = ["Schedule Technician Visit", "Check Warranty Replacement", "Contact Specialist"]
+            return text, "Hardware rail failure identified - Escalate to technician", "Book Technician", suggested_actions, memory_used_badges
+
+        if any(w in msg_l for w in ["passed", "epsa test passed", "sensor check passed", "no errors", "healthy"]):
+            text = (
+                f"Excellent news! Your **{product_name}** passed the onboard hardware diagnostics without any component errors.\n\n"
+                f"This confirms your processor, RAM, and motherboard logic gates are 100% healthy. The symptoms you experienced are rooted in OS power-driver calibration or background software draw rather than permanent hardware failure.\n\n"
+                f"Next, let's reset the Windows ACPI Battery Driver or check battery health telemetry. Would you like instructions for driver reset?"
+            )
+            suggested_actions = ["Reset ACPI Battery Driver", "Run Battery Health Report", "Book Technician"]
+            return text, "Hardware confirmed healthy - Proceed to OS driver diagnostic", "Reset ACPI Driver", suggested_actions, memory_used_badges
+
+        # 5. Step 1 of Hardware Diagnostic Routine (Dell ePSA / Samsung *#0*#)
+        if "laptop" in product_name.lower() or "dell" in product_name.lower():
+            text = (
+                f"Let's immediately begin **Step 1 of the Hardware Diagnostic Routine** for your **{product_name}**:\n\n"
+                f"1. **Trigger Dell ePSA Diagnostics:** Shut down the laptop completely.\n"
+                f"2. Hold down the **Fn key** on your keyboard, and while holding it down, press the **Power button** once.\n"
+                f"3. Release both keys when the screen lights up with the Dell logo to launch the pre-boot hardware diagnostic utility.\n\n"
+                f"Do you hear any diagnostic beeps or see colored flashing lights on the battery indicator?"
+            )
+            suggested_actions = ["Flashing Amber / White Light", "Diagnostic Beeps Heard", "No Lights or Beeps", "ePSA Test Passed"]
+            return text, "Run Dell ePSA pre-boot hardware diagnostic", "Execute Dell ePSA", suggested_actions, memory_used_badges
+        elif "phone" in product_name.lower() or "samsung" in product_name.lower():
+            text = (
+                f"Let's begin **Step 1 of the Hardware Diagnostic Routine** for your **{product_name}**:\n\n"
+                f"1. Open your phone dialer keypad and enter `*#0*#` to open the Samsung Hardware Diagnostic Panel.\n"
+                f"2. Tap **Sub Key**, **Touch**, and **Vibration** to test hardware sensors and display quadrants.\n\n"
+                f"Does the phone register all quadrant touches, or does it freeze during the hardware test?"
+            )
+            suggested_actions = ["Hardware Sensors Passed", "Screen Freezes During Test", "Touch Quadrant Failed", "Book Technician"]
+            return text, "Run Samsung mobile hardware diagnostic panel", "Execute *#0*#", suggested_actions, memory_used_badges
+        else:
+            text = (
+                f"Let's begin **Step 1 of the Hardware Diagnostic Routine** for your **{product_name}** ({order_number}):\n\n"
+                f"Please inspect the device power input and status LEDs. When connecting the original power cable, does the status indicator illuminate, flash, or remain completely unlit?"
+            )
+            suggested_actions = ["LED Illuminates Steady", "LED Flashes / Blinks", "LED Remains Dark", "Book Technician"]
+            return text, "Hardware diagnostic power verification", "Verify Power LEDs", suggested_actions, memory_used_badges

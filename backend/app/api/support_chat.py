@@ -191,11 +191,17 @@ def derive_suggested_actions(reply: str, user_msg: str, prod: Dict[str, str]) ->
             return ["Issue persists in Safe Mode", "Phone worked smoothly in Safe Mode", "Book Technician"]
         return ["Isolate Single App", "Entire Phone Locks Up", "Book Technician"]
     elif "laptop" in pname or "dell" in pname:
-        if "battery" in msg or "drain" in msg or "hour" in msg:
+        if any(w in msg for w in ["hardware", "suite", "diagnostic", "epsa", "hardware test"]):
+            return ["Flashing Amber / White Light", "Diagnostic Beeps Heard", "No Lights or Beeps", "ePSA Test Passed"]
+        elif any(w in msg for w in ["amber", "blinking", "white light", "light"]):
+            return ["2 Amber, 3 White", "Solid Amber Light", "Flashing Continuously", "Book Technician"]
+        elif "beep" in msg:
+            return ["Continuous Beeps", "3 Short Beeps", "4 Beeps", "Book Technician"]
+        elif "battery" in msg or "drain" in msg or "hour" in msg:
             return ["Run battery report", "I tried power settings", "Book Technician"]
-        elif "charging" in msg or "light" in msg:
+        elif "charging" in msg or "charge" in msg:
             return ["LED light is off", "Adapter gets hot", "Book Technician"]
-        return ["Battery Diagnostics", "Hardware Inspection", "Book Technician"]
+        return ["Hardware Diagnostic Suite", "Battery Diagnostics", "Book Technician"]
     elif "headphone" in pname or "earbud" in pname:
         return ["Check charging pins", "Perform factory reset", "Book Technician"]
     elif "wash" in pname:
@@ -225,7 +231,64 @@ def generate_dynamic_contextual_reply(
             last_assistant_msg = h.get("content", "").lower()
             break
 
-    # 1. User wants an explanation ("i want perfect explanation", "why is this happening", "explain the root cause")
+    # 1. Hardware Diagnostic Suite Trigger (Step 1 Progression)
+    if any(phrase in msg for phrase in ["hardware diagnostic", "diagnostic suite", "diagnostics", "run diagnostic", "hardware check", "epsa", "hardware test"]):
+        if "laptop" in pname.lower() or "dell" in pname.lower():
+            reply = (
+                f"Let's immediately begin **Step 1 of the Hardware Diagnostic Routine** for your **{pname}**:\n\n"
+                f"1. **Trigger Dell ePSA Diagnostics:** Shut down the laptop completely.\n"
+                f"2. Hold down the **Fn key** on your keyboard, and while holding it down, press the **Power button** once.\n"
+                f"3. Release both keys when the screen lights up with the Dell logo to launch the pre-boot hardware diagnostic utility.\n\n"
+                f"Do you hear any diagnostic beeps or see colored flashing lights on the battery indicator?"
+            )
+            return reply, ["Flashing Amber / White Light", "Diagnostic Beeps Heard", "No Lights or Beeps", "ePSA Test Passed"]
+        elif "phone" in pname.lower() or "samsung" in pname.lower():
+            reply = (
+                f"Let's begin **Step 1 of the Hardware Diagnostic Routine** for your **{pname}**:\n\n"
+                f"1. Open your phone dialer keypad and enter `*#0*#` to open the Samsung Hardware Diagnostic Panel.\n"
+                f"2. Tap **Sub Key**, **Touch**, and **Vibration** to test hardware sensors and display quadrants.\n\n"
+                f"Does the phone register all quadrant touches, or does it freeze during the hardware test?"
+            )
+            return reply, ["Hardware Sensors Passed", "Screen Freezes During Test", "Touch Quadrant Failed", "Book Technician"]
+
+    # 2. Answering Step 1 Hardware Diagnostic (Dell ePSA & Beeps & Amber lights)
+    if any(w in msg for w in ["amber", "flashing", "blinking", "white light", "flashing light", "blinking light"]):
+        reply = (
+            f"An amber-and-white blinking light pattern on your **{pname}** indicates a specific Dell POST hardware diagnostic code:\n\n"
+            f"• **2 Amber, 3 White:** System memory (RAM) failure or unseated memory module\n"
+            f"• **3 Amber, 1 White:** CMOS battery or RTC power loss\n"
+            f"• **2 Amber, 4 White:** Mainboard power management controller (PMIC) fault\n\n"
+            f"Does the LED blink in a specific repeating pattern, or does it stay solid amber?"
+        )
+        return reply, ["2 Amber, 3 White", "Solid Amber Light", "Flashing Continuously", "Book Technician"]
+
+    if any(w in msg for w in ["beep", "beeps", "beeping"]):
+        reply = (
+            f"Diagnostic beep codes on your **{pname}** signal a low-level hardware or BIOS POST failure:\n\n"
+            f"• **1 Beep:** BIOS ROM checksum failure\n"
+            f"• **3 Beeps:** System chipset or motherboard bus error\n"
+            f"• **4 Beeps:** Memory read / write failure\n\n"
+            f"How many distinct beeps do you hear before the pause?"
+        )
+        return reply, ["Continuous Beeps", "3 Short Beeps", "4 Beeps", "Book Technician"]
+
+    if any(w in msg for w in ["no light", "no lights", "no beep", "no beeps", "dark", "nothing happens", "not starting"]):
+        reply = (
+            f"If the ePSA diagnostic does not launch and the status LED remains completely unlit, this indicates an open-circuit failure in the DC-in charging port or an internal PMIC motherboard power rail on your **{pname}**.\n\n"
+            f"Because your order {order_id} has **Active Warranty Protection ({product_info.get('warranty_status', 'Active')})**, this requires physical hardware inspection rather than software configuration.\n\n"
+            f"Would you like to schedule an authorized technician visit for a motherboard/port repair under warranty?"
+        )
+        return reply, ["Schedule Technician Visit", "Check Warranty Replacement", "Contact Specialist"]
+
+    if any(w in msg for w in ["passed", "epsa test passed", "sensor check passed", "no errors", "healthy"]):
+        reply = (
+            f"Excellent news! Your **{pname}** passed the onboard hardware diagnostics without any component errors.\n\n"
+            f"This confirms your processor, RAM, and motherboard logic gates are 100% healthy. The symptoms you experienced are rooted in OS power-driver calibration or background software draw rather than permanent hardware failure.\n\n"
+            f"Next, let's reset the Windows ACPI Battery Driver or check battery health telemetry. Would you like instructions for driver reset?"
+        )
+        return reply, ["Reset ACPI Battery Driver", "Run Battery Health Report", "Book Technician"]
+
+    # 3. User wants an explanation ("i want perfect explanation", "why is this happening", "explain the root cause")
     if any(phrase in msg for phrase in ["explanation", "explain", "why does", "why is", "root cause", "understand why", "tell me why"]):
         if "phone" in pname.lower() or "samsung" in pname.lower():
             reply = (
@@ -359,13 +422,16 @@ ACTIVE PRODUCT & ORDER CONTEXT:
 - Platform: {product_info['platform']} (e.g. Amazon, Flipkart)
 - Warranty: {product_info['warranty_status']}
 
-CORE INSTRUCTIONS:
-1. NEVER output canned or repetitive templates (e.g., "We have all previous diagnostics saved...").
-2. Answer the user's immediate question directly and conversationally.
-3. If the user asks for an explanation (e.g., "i want perfect explanation"), explain the root causes of their specific hardware/software issue in simple, clear terms and guide them on what to check next.
-4. If safety concerns arise (smoke, burning smell, swollen battery), immediately instruct them to power off the device and stop using it.
-5. Offer escalation or technician booking only when troubleshooting fails or when explicitly requested.
-6. Keep answers concise enough to be read aloud via voice synthesis (2-4 sentences per turn unless deep technical detail is requested)."""
+CRITICAL RULES:
+1. NEVER output the greeting or "I have initialized the Hardware Diagnostic Agent..." if it has already been said in the chat history.
+2. If the user clicks or types "Hardware Diagnostic Suite", immediately provide Step 1 of the Dell Laptop diagnostic routine:
+   - Instruct them to shut down the laptop, hold down the 'Fn' key, and press the Power button to trigger Dell ePSA Pre-boot diagnostics.
+   - Ask them: "Do you hear any diagnostic beeps or see colored flashing lights on the battery indicator?"
+3. Never repeat prior messages or canned templates. Always progress the diagnosis forward based on the user's latest response.
+4. Keep the response concise, clear, and direct (2-4 sentences per turn unless deep technical detail is requested).
+5. If the user asks for an explanation (e.g., "i want perfect explanation"), explain the root causes of their specific hardware/software issue in simple, clear terms and guide them on what to check next.
+6. If safety concerns arise (smoke, burning smell, swollen battery), immediately instruct them to power off the device and stop using it.
+7. Offer escalation or technician booking only when troubleshooting fails or when explicitly requested."""
 
     # 4. Format history
     history_list = []
