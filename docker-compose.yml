@@ -1,10 +1,15 @@
 version: '3.8'
 
 services:
-  backend:
+  # ========================================================
+  # RecallAI Unified Main Web Service (Single-Port: 8000)
+  # Serves React Frontend SPA, REST API, WebSockets & Docs
+  # ========================================================
+  web:
     build:
       context: .
-      dockerfile: backend/Dockerfile
+      dockerfile: Dockerfile
+    container_name: recallai_main_web
     ports:
       - "8000:8000"
     environment:
@@ -15,13 +20,9 @@ services:
     volumes:
       - ./database:/app/database
     restart: unless-stopped
-
-  frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-    ports:
-      - "5173:80"
-    depends_on:
-      - backend
-    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/health"]
+      interval: 30s
+      timeout: 5s
+      start_period: 10s
+      retries: 3

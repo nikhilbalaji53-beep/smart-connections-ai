@@ -144,31 +144,35 @@ RecallAI is pre-seeded with **5 realistic enterprise customers**, **15 historica
 # Navigate to project directory
 cd "c:\Users\tvish\Desktop\Customer Support Agent"
 
-# Activate the virtual environment
-.\backend\venv\Scripts\Activate.ps1
-
-# (Optional) Seed the database with 5 enterprise customers & 15 tickets
-$env:PYTHONPATH="."
-python database\seed\seed_data.py
-
-# Start the FastAPI server
-uvicorn backend.app.main:app --port 8000 --reload
-```
-*Backend runs at `http://localhost:8000` (API Docs at `http://localhost:8000/docs`).*
-
-### Step 2: Start the Frontend
+### Option A: 1-Click Unified Main Web (Recommended)
+Double-click `start_web.bat` or run:
 ```powershell
-# In a separate terminal:
-cd frontend
-npm run dev
+.\start_web.bat
 ```
-*Frontend runs at `http://localhost:5173`.*
+*Opens the entire unified application on `http://localhost:8000` (Frontend, API, WebSockets, and Swagger docs all on one port).*
+
+### Option B: Unified Live Tunnel (Public HTTPS)
+Double-click `start_live.bat` or run:
+```powershell
+.\start_live.bat
+```
+*Launches the unified web server and Cloudflare tunnel on `http://localhost:8000`.*
+
+### Option C: Development Mode (Hot-Reload)
+```powershell
+.\start_dev.bat
+```
+
+### Option D: Docker Container Deployment
+```bash
+docker compose up --build
+```
 
 ---
 
 ## 🧪 Testing the 5 Hackathon Scenarios in the UI
 
-1. Open `http://localhost:5173` in your browser.
+1. Open `http://localhost:8000` in your browser.
 2. In the top navigation bar, click the **"Demo Scenarios"** dropdown.
 3. Select any scenario (e.g. **Marcus Vance — Pipeline Timeout**).
 4. Notice how RecallAI automatically:

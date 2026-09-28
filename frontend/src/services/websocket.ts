@@ -80,7 +80,7 @@ class LiveSupportWSClient {
     }
 
     const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const wsHost = window.location.hostname === 'localhost' ? '127.0.0.1:8000' : `${window.location.host}`;
+    const wsHost = window.location.host;
     const wsUrl = `${wsProtocol}//${wsHost}/ws/live/${customerId}?role=${role}`;
 
     try {
